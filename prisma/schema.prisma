@@ -1,0 +1,210 @@
+// ============================================================
+// BARBER HOUSE — Prisma schema
+//
+// Future-ready schema for the SaaS evolution. Designed for:
+//   - PostgreSQL provider (swap from SQLite when deploying)
+//   - Multi-tenancy via Barbershop tenant root
+//   - Scheduling: services, barbers, appointments, time blocks
+//   - Auth & audit
+//
+// The MVP does NOT use the database yet — the UI runs on the
+// static data layer in /src/data. When you migrate, swap the
+// data imports for `db.*` queries of the same shape.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Switch to "postgresql" when wiring up the real DB.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------
+// Multi-tenant root
+// -----------------------------
+
+model Barbershop {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  tagline   String?
+  phone     String?
+  whatsapp  String?
+  email     String?
+  instagram String?
+
+  // Address
+  street   String?
+  number   String?
+  district String?
+  city     String?
+  state    String?
+  zip      String?
+  mapsQuery String?
+
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  barbers      Barber[]
+  services     Service[]
+  appointments Appointment[]
+  testimonials Testimonial[]
+  admins       Admin[]
+  hours        BusinessHour[]
+  blocks       TimeBlock[]
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  role         AdminRole @default(MANAGER)
+  barbershopId String?
+  barbershop   Barbershop? @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  OWNER
+  MANAGER
+  BARBER
+}
+
+// -----------------------------
+// Catalog
+// -----------------------------
+
+model Service {
+  id           String  @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  durationMin Int
+  priceCents  Int // store money as integer cents — never floats
+
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+  @@index([barbershopId, isActive])
+}
+
+model Barber {
+  id           String  @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  name       String
+  specialty  String?
+  bio        String?
+  imageUrl   String?
+
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+  hours        BusinessHour[]
+  blocks       TimeBlock[]
+  @@index([barbershopId, isActive])
+}
+
+// -----------------------------
+// Scheduling
+// -----------------------------
+
+model BusinessHour {
+  id           String  @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  barberId String?
+  barber   Barber?  @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  weekday Int // 0 = Sunday … 6 = Saturday
+  openMin Int // minutes from midnight, e.g. 540 = 09:00
+  closeMin Int
+}
+
+model TimeBlock {
+  // Used for vacations, holidays, lunch breaks, etc.
+  id           String   @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  barberId String?
+  barber   Barber?  @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  start DateTime
+  end   DateTime
+  reason String? // "Almoço", "Folga", etc.
+
+  createdAt DateTime @default(now())
+}
+
+model Appointment {
+  id           String  @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  barberId String?
+  barber   Barber?  @relation(fields: [barberId], references: [id], onDelete: SetNull)
+  // barberId null + anyBarber=true means "assigned on arrival"
+  anyBarber Boolean @default(false)
+
+  startAt DateTime
+  endAt   DateTime
+
+  // Customer snapshot (denormalised for history — even if customer is deleted)
+  customerName  String
+  customerPhone String
+
+  status      AppointmentStatus @default(PENDING)
+  priceCents  Int // snapshot of service price at booking time
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barbershopId, startAt])
+  @@index([barberId, startAt])
+  @@index([status])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Testimonial {
+  id           String  @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  author   String
+  context  String?
+  quote    String
+  rating   Int    @db.SmallInt
+  isPublic Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" fill="#0c0a09"/>
+  <rect x="22" y="14" width="20" height="36" rx="2" fill="none" stroke="#c9a227" stroke-width="2"/>
+  <rect x="26" y="18" width="12" height="8" fill="#c9a227"/>
+  <rect x="26" y="28" width="12" height="8" fill="#f5f0e8"/>
+  <rect x="26" y="38" width="12" height="8" fill="#c9a227"/>
+  <text x="32" y="58" font-family="Arial, sans-serif" font-size="7" font-weight="700" fill="#c9a227" text-anchor="middle" letter-spacing="1">BH</text>
+</svg>
