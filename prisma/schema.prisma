@@ -168,10 +168,16 @@ model Appointment {
   // barberId null + anyBarber=true means "assigned on arrival"
   anyBarber Boolean @default(false)
 
+  // Optional link to a Client record. Kept nullable so appointments can exist
+  // for walk-ins or legacy data. customerName/customerPhone below are always
+  // present as denormalized snapshots.
+  clientId String?
+  client   Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
   startAt DateTime
   endAt   DateTime
 
-  // Customer snapshot (denormalised for history — even if customer is deleted)
+  // Customer snapshot (denormalised for history — even if client is deleted)
   customerName  String
   customerPhone String
 
@@ -184,7 +190,38 @@ model Appointment {
 
   @@index([barbershopId, startAt])
   @@index([barberId, startAt])
+  @@index([clientId, startAt])
   @@index([status])
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+
+  name  String
+  phone String
+  email String?
+
+  // Denormalized stats — kept in sync via triggers or app-layer writes.
+  // They exist as columns so the admin list view is a single fast query.
+  lastVisitAt        DateTime?
+  totalAppointments  Int       @default(0)
+  totalSpentCents    Int       @default(0)
+  preferredBarberId  String?
+  preferredServiceId String?
+
+  notes    String?
+  isActive Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@unique([barbershopId, phone])
+  @@index([barbershopId, isActive])
+  @@index([barbershopId, name])
 }
 
 enum AppointmentStatus {
