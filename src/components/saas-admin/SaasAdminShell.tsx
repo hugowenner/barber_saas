@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -13,7 +13,6 @@ interface SaasAdminShellProps {
 
 const NAV = [
   { href: "/saas-admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/saas-admin/barbershops", label: "Barbearias", icon: Building2 },
 ];
 
 export function SaasAdminShell({ children, user }: SaasAdminShellProps) {
