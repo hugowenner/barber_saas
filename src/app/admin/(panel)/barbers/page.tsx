@@ -15,5 +15,5 @@ export default async function BarbersPage() {
     getServices(shop.id),
   ]);
 
-  return <BarbersClient barbershopId={shop.id} initialBarbers={barbers} services={services} />;
+  return <BarbersClient initialBarbers={barbers} services={services} />;
 }

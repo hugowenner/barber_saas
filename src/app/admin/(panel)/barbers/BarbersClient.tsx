@@ -25,12 +25,11 @@ import type { Barber, Service } from "@/types";
 type BarberWithActive = Barber & { isActive: boolean };
 
 interface Props {
-  barbershopId: string;
   initialBarbers: BarberWithActive[];
   services: Service[];
 }
 
-export function BarbersClient({ barbershopId, initialBarbers, services }: Props) {
+export function BarbersClient({ initialBarbers, services }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,7 +50,7 @@ export function BarbersClient({ barbershopId, initialBarbers, services }: Props)
       if (editing) {
         await updateBarber(editing.id, data);
       } else {
-        await createBarber(barbershopId, data);
+        await createBarber(data);
       }
       setDialogOpen(false);
       setEditing(null);

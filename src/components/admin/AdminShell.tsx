@@ -4,12 +4,15 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
+import type { AdminRole } from "@prisma/client";
 
-/**
- * Admin layout shell: fixed sidebar on desktop, drawer on mobile.
- * The header is sticky and includes the mobile menu trigger.
- */
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export interface AdminUser {
+  name: string;
+  email: string;
+  role: AdminRole;
+}
+
+export function AdminShell({ children, user }: { children: React.ReactNode; user: AdminUser }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -29,7 +32,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       {/* Main area */}
       <div className="md:pl-64">
-        <AdminHeader onMenuClick={() => setMobileOpen(true)} />
+        <AdminHeader onMenuClick={() => setMobileOpen(true)} user={user} />
         <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {children}
         </main>

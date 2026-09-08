@@ -1,4 +1,5 @@
 import { PrismaClient, AppointmentStatus } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const db = new PrismaClient();
 
@@ -282,12 +283,30 @@ async function main() {
     }
   }
 
+  // Admin user — credentials from env vars
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@barberhouse.com.br").toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin@123!";
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+
+  await db.admin.upsert({
+    where: { email: adminEmail },
+    update: { passwordHash, barbershopId: shop.id },
+    create: {
+      email: adminEmail,
+      name: "Administrador",
+      passwordHash,
+      role: "OWNER",
+      barbershopId: shop.id,
+    },
+  });
+
   console.log("Seed complete.");
   console.log(`  Barbershop: ${shop.name}`);
   console.log(`  Services: ${services.length}`);
   console.log(`  Barbers: ${barbers.length}`);
   console.log(`  Clients: ${clients.length}`);
   console.log(`  Appointments: ${apptTemplates.length}`);
+  console.log(`  Admin: ${adminEmail}`);
 }
 
 main()

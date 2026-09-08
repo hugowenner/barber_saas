@@ -24,11 +24,10 @@ import type { Service } from "@/types";
 type ServiceWithMeta = Service & { isActive: boolean; sortOrder: number };
 
 interface Props {
-  barbershopId: string;
   initialServices: ServiceWithMeta[];
 }
 
-export function ServicesClient({ barbershopId, initialServices }: Props) {
+export function ServicesClient({ initialServices }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,7 +41,7 @@ export function ServicesClient({ barbershopId, initialServices }: Props) {
       if (editing) {
         await updateService(editing.id, data);
       } else {
-        await createService(barbershopId, data);
+        await createService(data);
       }
       setDialogOpen(false);
       setEditing(null);

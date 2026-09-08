@@ -2,13 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { getSession } from "@/lib/auth-session";
 
-export async function createService(barbershopId: string, data: {
+async function requireSession() {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  return session;
+}
+
+export async function createService(data: {
   name: string;
   description?: string;
   durationMin: number;
   priceBRL: number;
 }) {
+  const { barbershopId } = await requireSession();
   await db.service.create({
     data: {
       barbershopId,
@@ -29,9 +37,10 @@ export async function updateService(id: string, data: {
   priceBRL?: number;
   isActive?: boolean;
 }) {
+  const { barbershopId } = await requireSession();
   const { priceBRL, ...rest } = data;
-  await db.service.update({
-    where: { id },
+  await db.service.updateMany({
+    where: { id, barbershopId },
     data: {
       ...rest,
       ...(priceBRL !== undefined ? { priceCents: Math.round(priceBRL * 100) } : {}),
@@ -41,6 +50,7 @@ export async function updateService(id: string, data: {
 }
 
 export async function deleteService(id: string) {
-  await db.service.update({ where: { id }, data: { isActive: false } });
+  const { barbershopId } = await requireSession();
+  await db.service.updateMany({ where: { id, barbershopId }, data: { isActive: false } });
   revalidatePath("/admin/services");
 }

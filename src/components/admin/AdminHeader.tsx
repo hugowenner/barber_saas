@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { Menu, ExternalLink, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAdminAuthStore } from "@/lib/admin-auth-store";
+import { logoutAction } from "@/lib/actions/auth";
+import type { AdminUser } from "@/components/admin/AdminShell";
 
 const TITLES: Record<string, string> = {
   "/admin/dashboard": "Dashboard",
@@ -16,17 +17,23 @@ const TITLES: Record<string, string> = {
   "/admin/settings": "Configurações",
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  OWNER: "Proprietário",
+  MANAGER: "Gerente",
+  BARBER: "Barbeiro",
+};
+
 interface AdminHeaderProps {
   onMenuClick: () => void;
+  user: AdminUser;
 }
 
-export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
+export function AdminHeader({ onMenuClick, user }: AdminHeaderProps) {
   const pathname = usePathname();
-  const user = useAdminAuthStore((s) => s.user);
-  const logout = useAdminAuthStore((s) => s.logout);
 
   const title = TITLES[pathname] ?? "Admin";
-  const initials = (user?.name ?? "A")
+  const initials = (user.name ?? "A")
     .split(" ")
     .slice(0, 2)
     .map((p) => p[0])
@@ -69,23 +76,23 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           </Avatar>
           <div className="hidden text-right sm:block">
             <div className="text-sm font-medium leading-tight text-foreground">
-              {user?.name ?? "Administrador"}
+              {user.name ?? "Administrador"}
             </div>
             <div className="text-xs leading-tight text-muted-foreground">
-              {user?.role === "ADMIN" ? "Administrador" : "Barbeiro"}
+              {ROLE_LABELS[user.role] ?? user.role}
             </div>
           </div>
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            aria-label="Sair"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Link href="/admin/login" onClick={logout}>
+          <form action={logoutAction}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="icon"
+              aria-label="Sair"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <LogOut className="size-4" />
-            </Link>
-          </Button>
+            </Button>
+          </form>
         </div>
       </div>
     </header>

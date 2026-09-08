@@ -11,5 +11,5 @@ export default async function ServicesPage() {
 
   const services = await getAllServices(shop.id);
 
-  return <ServicesClient barbershopId={shop.id} initialServices={services} />;
+  return <ServicesClient initialServices={services} />;
 }
