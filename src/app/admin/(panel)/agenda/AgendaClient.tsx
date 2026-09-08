@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { updateAppointmentStatus } from "@/lib/actions/appointments";
+import { updateAppointmentStatus, assignAppointmentBarber } from "@/lib/actions/appointments";
 import { formatBRL, formatLongDate } from "@/lib/format";
 import type { Appointment, AppointmentStatus } from "@/types/admin";
 import type { Barber } from "@/types";
@@ -102,6 +102,16 @@ export function AgendaClient({
       router.refresh();
     });
   };
+
+  const handleAssignBarber = (id: string, barberId: string) => {
+    startTransition(async () => {
+      await assignAppointmentBarber(id, barberId);
+      router.refresh();
+    });
+  };
+
+  // Only active barbers for assignment
+  const activeBarbers = barbers.filter((b) => b.isActive);
 
   // Business hours for this weekday
   const dayHours = businessHours.find((h) => h.weekday === weekday) ?? null;
@@ -225,7 +235,9 @@ export function AgendaClient({
       ) : barberFilter === "all" ? (
         <AllBarbersView
           appointments={filtered}
+          activeBarbers={activeBarbers}
           onStatusChange={handleStatusChange}
+          onAssignBarber={handleAssignBarber}
           isPending={isPending}
         />
       ) : (
@@ -233,7 +245,9 @@ export function AgendaClient({
           slots={slots}
           appointmentsBySlot={appointmentsBySlot}
           dayHours={dayHours}
+          activeBarbers={activeBarbers}
           onStatusChange={handleStatusChange}
+          onAssignBarber={handleAssignBarber}
           isPending={isPending}
         />
       )}
@@ -255,13 +269,19 @@ function ClosedDay() {
   );
 }
 
+type ActiveBarber = { id: string; name: string };
+
 function AllBarbersView({
   appointments,
+  activeBarbers,
   onStatusChange,
+  onAssignBarber,
   isPending,
 }: {
   appointments: Appointment[];
+  activeBarbers: ActiveBarber[];
   onStatusChange: (id: string, s: AppointmentStatus) => void;
+  onAssignBarber: (id: string, barberId: string) => void;
   isPending: boolean;
 }) {
   if (appointments.length === 0) {
@@ -288,7 +308,9 @@ function AllBarbersView({
         <AppointmentRow
           key={a.id}
           appointment={a}
+          activeBarbers={activeBarbers}
           onStatusChange={onStatusChange}
+          onAssignBarber={onAssignBarber}
           isPending={isPending}
         />
       ))}
@@ -300,13 +322,17 @@ function TimelineView({
   slots,
   appointmentsBySlot,
   dayHours,
+  activeBarbers,
   onStatusChange,
+  onAssignBarber,
   isPending,
 }: {
   slots: number[];
   appointmentsBySlot: Map<number, Appointment[]>;
   dayHours: { openMin: number; closeMin: number };
+  activeBarbers: ActiveBarber[];
   onStatusChange: (id: string, s: AppointmentStatus) => void;
+  onAssignBarber: (id: string, barberId: string) => void;
   isPending: boolean;
 }) {
   return (
@@ -338,7 +364,9 @@ function TimelineView({
                     <AppointmentRow
                       key={a.id}
                       appointment={a}
+                      activeBarbers={activeBarbers}
                       onStatusChange={onStatusChange}
+                      onAssignBarber={onAssignBarber}
                       isPending={isPending}
                       compact
                     />
@@ -357,20 +385,28 @@ function TimelineView({
 
 function AppointmentRow({
   appointment: a,
+  activeBarbers,
   onStatusChange,
+  onAssignBarber,
   isPending,
   compact = false,
 }: {
   appointment: Appointment;
+  activeBarbers: ActiveBarber[];
   onStatusChange: (id: string, s: AppointmentStatus) => void;
+  onAssignBarber: (id: string, barberId: string) => void;
   isPending: boolean;
   compact?: boolean;
 }) {
+  const needsAssignment = a.anyBarber && !a.barberId;
+
   return (
     <article
-      className={`rounded-md border border-border bg-card transition-colors ${
+      className={`rounded-md border bg-card transition-colors ${
         compact ? "p-2" : "p-4"
-      } ${a.status === "CANCELLED" ? "opacity-60" : ""}`}
+      } ${a.status === "CANCELLED" ? "opacity-60" : ""} ${
+        needsAssignment ? "border-primary/40" : "border-border"
+      }`}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         {/* Left: time + client + service */}
@@ -395,7 +431,7 @@ function AppointmentRow({
             </div>
             <div className="text-xs text-muted-foreground">
               {a.serviceName}
-              {a.barberName ? ` · ${a.barberName}` : " · Qualquer barbeiro"}
+              {a.barberName ? ` · ${a.barberName}` : needsAssignment ? null : " · Qualquer barbeiro"}
               {!compact && (
                 <>
                   {" "}·{" "}
@@ -403,6 +439,28 @@ function AppointmentRow({
                 </>
               )}
             </div>
+            {/* Assign barber UI — only for unassigned anyBarber appointments */}
+            {needsAssignment && (
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="text-xs text-primary font-medium">Qualquer barbeiro</span>
+                <Select
+                  value=""
+                  onValueChange={(v) => { if (v) onAssignBarber(a.id, v); }}
+                  disabled={isPending || a.status === "CANCELLED"}
+                >
+                  <SelectTrigger className="h-6 w-auto min-w-32 border border-primary/40 bg-primary/5 px-2 text-xs text-primary">
+                    <SelectValue placeholder="Atribuir barbeiro…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeBarbers.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
 
