@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { toAppointment } from "@/lib/adapters";
+import { utcDayRange, todayInTZ } from "@/lib/tz";
 
 const include = {
   service: true,
@@ -16,11 +17,14 @@ export async function getAppointments(barbershopId: string) {
   return rows.map(toAppointment);
 }
 
-export async function getAppointmentsByDate(barbershopId: string, date: string) {
-  const start = new Date(`${date}T00:00:00`);
-  const end = new Date(`${date}T23:59:59`);
+export async function getAppointmentsByDate(
+  barbershopId: string,
+  date: string,
+  timezone = "America/Sao_Paulo",
+) {
+  const { gte, lt } = utcDayRange(date, timezone);
   const rows = await db.appointment.findMany({
-    where: { barbershopId, startAt: { gte: start, lte: end } },
+    where: { barbershopId, startAt: { gte, lt } },
     include,
     orderBy: { startAt: "asc" },
   });
@@ -36,8 +40,10 @@ export async function getAppointmentsByClient(barbershopId: string, clientId: st
   return rows.map(toAppointment);
 }
 
-export async function getTodaysAppointments(barbershopId: string) {
-  const today = new Date();
-  const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  return getAppointmentsByDate(barbershopId, iso);
+export async function getTodaysAppointments(
+  barbershopId: string,
+  timezone = "America/Sao_Paulo",
+) {
+  const today = todayInTZ(timezone);
+  return getAppointmentsByDate(barbershopId, today, timezone);
 }

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-session";
 import { redirect } from "next/navigation";
 import { getAppointments } from "@/lib/data/appointments";
 import { getAllBarbers } from "@/lib/data/barbers";
+import { getShopTimezone } from "@/lib/data/barbershop";
 import { AppointmentsClient } from "./AppointmentsClient";
 
 export const metadata: Metadata = { title: "Agendamentos" };
@@ -11,10 +12,11 @@ export default async function AppointmentsPage() {
   const session = await getSession();
   if (!session?.barbershopId) redirect("/admin/login");
 
-  const [appointments, barbers] = await Promise.all([
+  const [appointments, barbers, timezone] = await Promise.all([
     getAppointments(session.barbershopId),
     getAllBarbers(session.barbershopId),
+    getShopTimezone(session.barbershopId),
   ]);
 
-  return <AppointmentsClient initialAppointments={appointments} barbers={barbers} />;
+  return <AppointmentsClient initialAppointments={appointments} barbers={barbers} timezone={timezone} />;
 }

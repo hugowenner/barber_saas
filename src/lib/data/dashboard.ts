@@ -1,16 +1,19 @@
 import type { DashboardStats } from "@/types/admin";
 import { db } from "@/lib/db";
 import { toAppointment } from "@/lib/adapters";
+import { utcDayRange, todayInTZ } from "@/lib/tz";
 
 const include = { service: true, barber: true, client: true } as const;
 
-export async function getDashboardStats(barbershopId: string): Promise<DashboardStats> {
-  const today = new Date();
-  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-  const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+export async function getDashboardStats(
+  barbershopId: string,
+  timezone = "America/Sao_Paulo",
+): Promise<DashboardStats> {
+  const today = todayInTZ(timezone);
+  const { gte, lt } = utcDayRange(today, timezone);
 
   const todayRows = await db.appointment.findMany({
-    where: { barbershopId, startAt: { gte: dayStart, lte: dayEnd } },
+    where: { barbershopId, startAt: { gte, lt } },
     include,
     orderBy: { startAt: "asc" },
   });
@@ -27,7 +30,7 @@ export async function getDashboardStats(barbershopId: string): Promise<Dashboard
 
   const now = new Date();
   const upcomingToday = todayAppts.filter(
-    (a) => new Date(a.startAt) >= now && (a.status === "PENDING" || a.status === "CONFIRMED")
+    (a) => new Date(a.startAt) >= now && (a.status === "PENDING" || a.status === "CONFIRMED"),
   );
 
   const barbers = await db.barber.findMany({
@@ -41,11 +44,13 @@ export async function getDashboardStats(barbershopId: string): Promise<Dashboard
     countMap.set(a.barberId, (countMap.get(a.barberId) ?? 0) + 1);
   }
 
-  const barberSummary = barbers.map((b) => ({
-    barberId: b.id,
-    barberName: b.name,
-    count: countMap.get(b.id) ?? 0,
-  })).sort((a, b) => b.count - a.count);
+  const barberSummary = barbers
+    .map((b) => ({
+      barberId: b.id,
+      barberName: b.name,
+      count: countMap.get(b.id) ?? 0,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   return {
     todayTotal,

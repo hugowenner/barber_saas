@@ -10,3 +10,11 @@ export async function getBusinessHours(barbershopId: string) {
     orderBy: { weekday: "asc" },
   });
 }
+
+export async function getShopTimezone(barbershopId: string): Promise<string> {
+  const shop = await db.barbershop.findFirst({
+    where: { id: barbershopId },
+    select: { timezone: true },
+  });
+  return shop?.timezone ?? "America/Sao_Paulo";
+}

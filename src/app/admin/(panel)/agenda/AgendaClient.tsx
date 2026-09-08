@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { updateAppointmentStatus, assignAppointmentBarber } from "@/lib/actions/appointments";
 import { formatBRL, formatLongDate } from "@/lib/format";
+import { todayInTZ, formatTimeInTZ, minutesInTZ, weekdayInTZ } from "@/lib/tz";
 import type { Appointment, AppointmentStatus } from "@/types/admin";
 import type { Barber } from "@/types";
 
@@ -33,17 +34,13 @@ interface BusinessHourSlim {
 
 interface AgendaClientProps {
   date: string;
+  timezone: string;
   appointments: Appointment[];
   barbers: (Barber & { isActive: boolean })[];
   businessHours: BusinessHourSlim[];
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function shiftDate(iso: string, days: number): string {
   // Use T12:00:00 to avoid DST edge cases when shifting by day
@@ -56,25 +53,11 @@ function minToLabel(min: number): string {
   return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 }
 
-function appointmentStartMin(a: Appointment): number {
-  const d = new Date(a.startAt);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function appointmentEndMin(a: Appointment): number {
-  const d = new Date(a.endAt);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 // ── component ─────────────────────────────────────────────────────────────────
 
 export function AgendaClient({
   date,
+  timezone,
   appointments,
   barbers,
   businessHours,
@@ -83,13 +66,13 @@ export function AgendaClient({
   const [isPending, startTransition] = useTransition();
   const [barberFilter, setBarberFilter] = useState<string>("all");
 
-  // Weekday of the selected date (0 = Sunday … 6 = Saturday)
+  // Weekday of the selected date in the barbershop's civil timezone
   const weekday = useMemo(
-    () => new Date(`${date}T12:00:00`).getDay(),
-    [date],
+    () => weekdayInTZ(date, timezone),
+    [date, timezone],
   );
 
-  const todayStr = todayISO();
+  const todayStr = todayInTZ(timezone);
   const isToday = date === todayStr;
 
   const goTo = (d: string) => {
@@ -119,7 +102,6 @@ export function AgendaClient({
   // Appointments filtered by barber (client-side — no refetch)
   const filtered = useMemo(() => {
     if (barberFilter === "all") return appointments;
-    // For "any barber" appointments, show them regardless when all is selected
     return appointments.filter(
       (a) => a.barberId === barberFilter || (a.anyBarber && barberFilter === "all"),
     );
@@ -135,23 +117,21 @@ export function AgendaClient({
     return result;
   }, [dayHours]);
 
-  // For each slot, find appointments that start within it (start >= slot && start < slot+30)
+  // For each slot, find appointments that start within it
   const appointmentsBySlot = useMemo(() => {
     const map = new Map<number, Appointment[]>();
     for (const slot of slots) {
       map.set(slot, []);
     }
     for (const a of filtered) {
-      const startMin = appointmentStartMin(a);
-      const slotKey = slots.find(
-        (s) => startMin >= s && startMin < s + 30,
-      );
+      const startMin = minutesInTZ(a.startAt, timezone);
+      const slotKey = slots.find((s) => startMin >= s && startMin < s + 30);
       if (slotKey !== undefined) {
         map.get(slotKey)!.push(a);
       }
     }
     return map;
-  }, [slots, filtered]);
+  }, [slots, filtered, timezone]);
 
   return (
     <div className="space-y-6">
@@ -236,6 +216,7 @@ export function AgendaClient({
         <AllBarbersView
           appointments={filtered}
           activeBarbers={activeBarbers}
+          timezone={timezone}
           onStatusChange={handleStatusChange}
           onAssignBarber={handleAssignBarber}
           isPending={isPending}
@@ -246,6 +227,7 @@ export function AgendaClient({
           appointmentsBySlot={appointmentsBySlot}
           dayHours={dayHours}
           activeBarbers={activeBarbers}
+          timezone={timezone}
           onStatusChange={handleStatusChange}
           onAssignBarber={handleAssignBarber}
           isPending={isPending}
@@ -274,12 +256,14 @@ type ActiveBarber = { id: string; name: string };
 function AllBarbersView({
   appointments,
   activeBarbers,
+  timezone,
   onStatusChange,
   onAssignBarber,
   isPending,
 }: {
   appointments: Appointment[];
   activeBarbers: ActiveBarber[];
+  timezone: string;
   onStatusChange: (id: string, s: AppointmentStatus) => void;
   onAssignBarber: (id: string, barberId: string) => void;
   isPending: boolean;
@@ -309,6 +293,7 @@ function AllBarbersView({
           key={a.id}
           appointment={a}
           activeBarbers={activeBarbers}
+          timezone={timezone}
           onStatusChange={onStatusChange}
           onAssignBarber={onAssignBarber}
           isPending={isPending}
@@ -323,6 +308,7 @@ function TimelineView({
   appointmentsBySlot,
   dayHours,
   activeBarbers,
+  timezone,
   onStatusChange,
   onAssignBarber,
   isPending,
@@ -331,6 +317,7 @@ function TimelineView({
   appointmentsBySlot: Map<number, Appointment[]>;
   dayHours: { openMin: number; closeMin: number };
   activeBarbers: ActiveBarber[];
+  timezone: string;
   onStatusChange: (id: string, s: AppointmentStatus) => void;
   onAssignBarber: (id: string, barberId: string) => void;
   isPending: boolean;
@@ -365,6 +352,7 @@ function TimelineView({
                       key={a.id}
                       appointment={a}
                       activeBarbers={activeBarbers}
+                      timezone={timezone}
                       onStatusChange={onStatusChange}
                       onAssignBarber={onAssignBarber}
                       isPending={isPending}
@@ -386,6 +374,7 @@ function TimelineView({
 function AppointmentRow({
   appointment: a,
   activeBarbers,
+  timezone,
   onStatusChange,
   onAssignBarber,
   isPending,
@@ -393,6 +382,7 @@ function AppointmentRow({
 }: {
   appointment: Appointment;
   activeBarbers: ActiveBarber[];
+  timezone: string;
   onStatusChange: (id: string, s: AppointmentStatus) => void;
   onAssignBarber: (id: string, barberId: string) => void;
   isPending: boolean;
@@ -413,7 +403,7 @@ function AppointmentRow({
         <div className="flex items-center gap-3">
           {!compact && (
             <div className="font-display text-lg tracking-wide text-primary tabular-nums">
-              {formatTime(a.startAt)}
+              {formatTimeInTZ(a.startAt, timezone)}
             </div>
           )}
           <div className="min-w-0">

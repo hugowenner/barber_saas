@@ -49,6 +49,8 @@ model Barbershop {
   plan   BarbershopPlan   @default(BASIC)
   status BarbershopStatus @default(ACTIVE)
 
+  timezone   String   @default("America/Sao_Paulo")
+
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

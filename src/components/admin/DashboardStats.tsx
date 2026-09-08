@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format";
+import { formatTimeInTZ } from "@/lib/tz";
 import { StatusBadge } from "./StatusBadge";
 import type { Appointment } from "@/types/admin";
 
@@ -63,10 +63,11 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
 
 interface UpcomingAppointmentsProps {
   appointments: Appointment[];
+  timezone: string;
 }
 
 /** Compact list of today's upcoming appointments. */
-export function UpcomingAppointments({ appointments }: UpcomingAppointmentsProps) {
+export function UpcomingAppointments({ appointments, timezone }: UpcomingAppointmentsProps) {
   if (appointments.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-card/50 px-5 py-8 text-center text-sm text-muted-foreground">
@@ -84,7 +85,7 @@ export function UpcomingAppointments({ appointments }: UpcomingAppointmentsProps
         >
           <div className="w-12 shrink-0 text-center">
             <div className="font-display text-lg tracking-wide text-primary">
-              {formatTimeShort(a.startAt)}
+              {formatTimeInTZ(a.startAt, timezone)}
             </div>
           </div>
           <div className="min-w-0 flex-1">
@@ -135,9 +136,4 @@ export function BarberSummary({ summary }: BarberSummaryProps) {
       ))}
     </ul>
   );
-}
-
-function formatTimeShort(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }

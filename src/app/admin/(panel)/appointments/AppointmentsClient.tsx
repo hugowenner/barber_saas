@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { formatBRL } from "@/lib/format";
+import { todayInTZ, formatTimeInTZ, localDateStr } from "@/lib/tz";
 import { updateAppointmentStatus } from "@/lib/actions/appointments";
 import type { Appointment, AppointmentStatus } from "@/types/admin";
 import type { Barber } from "@/types";
@@ -22,26 +23,28 @@ import type { Barber } from "@/types";
 interface Props {
   initialAppointments: Appointment[];
   barbers: (Barber & { isActive: boolean })[];
+  timezone: string;
 }
 
-export function AppointmentsClient({ initialAppointments, barbers }: Props) {
+export function AppointmentsClient({ initialAppointments, barbers, timezone }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [date, setDate] = useState<string>(todayISO());
+  const [date, setDate] = useState<string>(todayInTZ(timezone));
   const [barberFilter, setBarberFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
     return initialAppointments
       .filter((a) => {
-        const aDate = a.startAt.slice(0, 10);
+        // Compare civil date in barbershop timezone — avoids UTC day-boundary shift
+        const aDate = localDateStr(a.startAt, timezone);
         if (date && aDate !== date) return false;
         if (barberFilter !== "all" && a.barberId !== barberFilter) return false;
         if (statusFilter !== "all" && a.status !== statusFilter) return false;
         return true;
       })
       .sort((a, b) => a.startAt.localeCompare(b.startAt));
-  }, [date, barberFilter, statusFilter, initialAppointments]);
+  }, [date, barberFilter, statusFilter, initialAppointments, timezone]);
 
   const hasFilters = barberFilter !== "all" || statusFilter !== "all";
 
@@ -131,7 +134,7 @@ export function AppointmentsClient({ initialAppointments, barbers }: Props) {
                 {filtered.map((a) => (
                   <tr key={a.id} className="transition-colors hover:bg-secondary/30">
                     <td className="px-4 py-3">
-                      <div className="font-display text-base tracking-wide text-foreground">{formatTime(a.startAt)}</div>
+                      <div className="font-display text-base tracking-wide text-foreground">{formatTimeInTZ(a.startAt, timezone)}</div>
                     </td>
                     <td className="px-4 py-3 text-foreground">{a.clientName}</td>
                     <td className="px-4 py-3 text-muted-foreground">{a.serviceName}</td>
@@ -162,7 +165,7 @@ export function AppointmentsClient({ initialAppointments, barbers }: Props) {
           <ul className="space-y-3 md:hidden">
             {filtered.map((a) => (
               <li key={a.id}>
-                <AppointmentCard appointment={a} onStatusChange={handleStatusChange} isPending={isPending} />
+                <AppointmentCard appointment={a} timezone={timezone} onStatusChange={handleStatusChange} isPending={isPending} />
               </li>
             ))}
           </ul>
@@ -172,12 +175,22 @@ export function AppointmentsClient({ initialAppointments, barbers }: Props) {
   );
 }
 
-function AppointmentCard({ appointment: a, onStatusChange, isPending }: { appointment: Appointment; onStatusChange: (id: string, s: AppointmentStatus) => void; isPending: boolean }) {
+function AppointmentCard({
+  appointment: a,
+  timezone,
+  onStatusChange,
+  isPending,
+}: {
+  appointment: Appointment;
+  timezone: string;
+  onStatusChange: (id: string, s: AppointmentStatus) => void;
+  isPending: boolean;
+}) {
   return (
     <article className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="font-display text-xl tracking-wide text-primary">{formatTime(a.startAt)}</div>
+          <div className="font-display text-xl tracking-wide text-primary">{formatTimeInTZ(a.startAt, timezone)}</div>
           <div>
             <div className="text-sm font-medium text-foreground">{a.clientName}</div>
             <div className="text-xs text-muted-foreground">{a.serviceName} · {a.barberName ?? "Qualquer"}</div>
@@ -193,16 +206,11 @@ function AppointmentCard({ appointment: a, onStatusChange, isPending }: { appoin
   );
 }
 
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 function formatDateLabel(iso: string): string {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }

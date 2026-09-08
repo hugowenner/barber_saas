@@ -8,6 +8,8 @@ import {
 } from "@/components/admin/DashboardStats";
 import { getSession } from "@/lib/auth-session";
 import { getDashboardStats } from "@/lib/data/dashboard";
+import { getShopTimezone } from "@/lib/data/barbershop";
+import { hourInTZ } from "@/lib/tz";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -17,9 +19,11 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session?.barbershopId) redirect("/admin/login");
-  const stats = await getDashboardStats(session.barbershopId);
 
-  const greeting = getGreeting();
+  const timezone = await getShopTimezone(session.barbershopId);
+  const stats = await getDashboardStats(session.barbershopId, timezone);
+
+  const greeting = getGreeting(timezone);
 
   return (
     <div className="space-y-8">
@@ -44,7 +48,7 @@ export default async function DashboardPage() {
               Próximos agendamentos
             </h2>
           </div>
-          <UpcomingAppointments appointments={stats.upcomingToday} />
+          <UpcomingAppointments appointments={stats.upcomingToday} timezone={timezone} />
         </section>
 
         <section aria-labelledby="barber-summary-heading">
@@ -63,8 +67,8 @@ export default async function DashboardPage() {
   );
 }
 
-function getGreeting(): string {
-  const h = new Date().getHours();
+function getGreeting(timezone: string): string {
+  const h = hourInTZ(timezone);
   if (h < 12) return "Bom dia, Administrador";
   if (h < 18) return "Boa tarde, Administrador";
   return "Boa noite, Administrador";

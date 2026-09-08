@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getBarbershop } from "@/lib/data/barbershop";
+import { zonedToUtc, weekdayInTZ, minutesInTZ } from "@/lib/tz";
 import { Prisma } from "@prisma/client";
 
 export async function createPublicBooking(data: {
@@ -35,20 +36,22 @@ export async function createPublicBooking(data: {
       if (!barber) return { ok: false, error: "Barbeiro não encontrado." };
     }
 
-    const start = new Date(`${data.date}T${data.time}:00`);
+    const tz = shop.timezone ?? "America/Sao_Paulo";
+    // Parse the user-selected civil time in the barbershop's timezone → UTC
+    const start = zonedToUtc(`${data.date}T${data.time}:00`, tz);
     // Use service.durationMin from DB — never trust client-supplied duration
     const end = new Date(start.getTime() + service.durationMin * 60_000);
 
-    // Validate business hours
-    const weekday = start.getDay();
+    // Validate business hours using minutes-from-midnight in barbershop timezone
+    const weekday = weekdayInTZ(data.date, tz);
     const businessHour = await db.businessHour.findFirst({
       where: { barbershopId, weekday, barberId: null },
     });
     if (!businessHour) {
       return { ok: false, error: "A barbearia não atende neste dia." };
     }
-    const startMin = start.getHours() * 60 + start.getMinutes();
-    const endMin = end.getHours() * 60 + end.getMinutes();
+    const startMin = minutesInTZ(start.toISOString(), tz);
+    const endMin = minutesInTZ(end.toISOString(), tz);
     if (startMin < businessHour.openMin || endMin > businessHour.closeMin) {
       return { ok: false, error: "Horário fora do funcionamento da barbearia." };
     }
