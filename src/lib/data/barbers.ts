@@ -17,7 +17,7 @@ export async function getAllBarbers(barbershopId: string) {
   return rows.map(toBarber);
 }
 
-export async function getBarberById(id: string) {
-  const row = await db.barber.findUnique({ where: { id } });
+export async function getBarberById(id: string, barbershopId: string) {
+  const row = await db.barber.findFirst({ where: { id, barbershopId } });
   return row ? toBarber(row) : null;
 }

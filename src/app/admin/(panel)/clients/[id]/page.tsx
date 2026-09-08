@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBarbershop } from "@/lib/data/barbershop";
+import { getSession } from "@/lib/auth-session";
 import { getClientById } from "@/lib/data/clients";
 import { getAppointmentsByClient } from "@/lib/data/appointments";
 import { getBarberById } from "@/lib/data/barbers";
@@ -19,7 +19,9 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const client = await getClientById(id);
+  const session = await getSession();
+  if (!session?.barbershopId) return { title: "Cliente não encontrado" };
+  const client = await getClientById(id, session.barbershopId);
   if (!client) return { title: "Cliente não encontrado" };
   return { title: client.name };
 }
@@ -30,14 +32,16 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const shop = await getBarbershop();
-  const client = await getClientById(id);
+  const session = await getSession();
+  if (!session?.barbershopId) notFound();
+  const barbershopId = session.barbershopId;
+  const client = await getClientById(id, barbershopId);
   if (!client) notFound();
 
   const [history, preferredBarber, preferredService] = await Promise.all([
-    shop ? getAppointmentsByClient(shop.id, client.id) : Promise.resolve([]),
-    client.preferredBarberId ? getBarberById(client.preferredBarberId) : Promise.resolve(null),
-    client.preferredServiceId ? getServiceById(client.preferredServiceId) : Promise.resolve(null),
+    getAppointmentsByClient(barbershopId, client.id),
+    client.preferredBarberId ? getBarberById(client.preferredBarberId, barbershopId) : Promise.resolve(null),
+    client.preferredServiceId ? getServiceById(client.preferredServiceId, barbershopId) : Promise.resolve(null),
   ]);
 
   const stats = [

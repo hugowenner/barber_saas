@@ -6,26 +6,18 @@ import {
   UpcomingAppointments,
   BarberSummary,
 } from "@/components/admin/DashboardStats";
-import { getBarbershop } from "@/lib/data/barbershop";
+import { getSession } from "@/lib/auth-session";
 import { getDashboardStats } from "@/lib/data/dashboard";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Dashboard",
 };
 
 export default async function DashboardPage() {
-  const shop = await getBarbershop();
-  const stats = shop
-    ? await getDashboardStats(shop.id)
-    : {
-        todayTotal: 0,
-        todayConfirmed: 0,
-        todayPending: 0,
-        todayCompleted: 0,
-        todayRevenueBRL: 0,
-        upcomingToday: [],
-        barberSummary: [],
-      };
+  const session = await getSession();
+  if (!session?.barbershopId) redirect("/admin/login");
+  const stats = await getDashboardStats(session.barbershopId);
 
   const greeting = getGreeting();
 

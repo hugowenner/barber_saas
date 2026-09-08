@@ -9,7 +9,7 @@ export async function getClients(barbershopId: string) {
   return rows.map(toClient);
 }
 
-export async function getClientById(id: string) {
-  const row = await db.client.findUnique({ where: { id } });
+export async function getClientById(id: string, barbershopId: string) {
+  const row = await db.client.findFirst({ where: { id, barbershopId } });
   return row ? toClient(row) : null;
 }

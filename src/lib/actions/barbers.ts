@@ -10,13 +10,20 @@ async function requireBarbershopSession(): Promise<{ barbershopId: string }> {
   return { barbershopId: session.barbershopId };
 }
 
+async function requireManagerSession(): Promise<{ barbershopId: string }> {
+  const session = await getSession();
+  if (!session || !session.barbershopId) throw new Error("Unauthorized");
+  if (session.role === "BARBER") throw new Error("Forbidden");
+  return { barbershopId: session.barbershopId };
+}
+
 export async function createBarber(data: {
   name: string;
   specialty?: string;
   bio?: string;
   imageUrl?: string | null;
 }) {
-  const { barbershopId } = await requireBarbershopSession();
+  const { barbershopId } = await requireManagerSession();
   await db.barber.create({
     data: { barbershopId, ...data, isActive: true },
   });
@@ -36,7 +43,7 @@ export async function updateBarber(id: string, data: {
 }
 
 export async function deleteBarber(id: string) {
-  const { barbershopId } = await requireBarbershopSession();
+  const { barbershopId } = await requireManagerSession();
   await db.barber.updateMany({ where: { id, barbershopId }, data: { isActive: false } });
   revalidatePath("/admin/barbers");
 }

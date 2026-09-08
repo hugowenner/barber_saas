@@ -17,7 +17,7 @@ export async function getAllServices(barbershopId: string) {
   return rows.map(toService);
 }
 
-export async function getServiceById(id: string) {
-  const row = await db.service.findUnique({ where: { id } });
+export async function getServiceById(id: string, barbershopId: string) {
+  const row = await db.service.findFirst({ where: { id, barbershopId } });
   return row ? toService(row) : null;
 }

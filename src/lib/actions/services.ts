@@ -10,13 +10,20 @@ async function requireBarbershopSession(): Promise<{ barbershopId: string }> {
   return { barbershopId: session.barbershopId };
 }
 
+async function requireManagerSession(): Promise<{ barbershopId: string }> {
+  const session = await getSession();
+  if (!session || !session.barbershopId) throw new Error("Unauthorized");
+  if (session.role === "BARBER") throw new Error("Forbidden");
+  return { barbershopId: session.barbershopId };
+}
+
 export async function createService(data: {
   name: string;
   description?: string;
   durationMin: number;
   priceBRL: number;
 }) {
-  const { barbershopId } = await requireBarbershopSession();
+  const { barbershopId } = await requireManagerSession();
   await db.service.create({
     data: {
       barbershopId,
@@ -50,7 +57,7 @@ export async function updateService(id: string, data: {
 }
 
 export async function deleteService(id: string) {
-  const { barbershopId } = await requireBarbershopSession();
+  const { barbershopId } = await requireManagerSession();
   await db.service.updateMany({ where: { id, barbershopId }, data: { isActive: false } });
   revalidatePath("/admin/services");
 }

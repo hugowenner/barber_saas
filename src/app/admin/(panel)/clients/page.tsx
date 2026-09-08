@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { getBarbershop } from "@/lib/data/barbershop";
+import { getSession } from "@/lib/auth-session";
+import { redirect } from "next/navigation";
 import { getClients } from "@/lib/data/clients";
 import { ClientsClient } from "./ClientsClient";
 
 export const metadata: Metadata = { title: "Clientes" };
 
 export default async function ClientsPage() {
-  const shop = await getBarbershop();
-  if (!shop) return <p className="p-8 text-muted-foreground">Barbearia não encontrada.</p>;
+  const session = await getSession();
+  if (!session?.barbershopId) redirect("/admin/login");
 
-  const clients = await getClients(shop.id);
+  const clients = await getClients(session.barbershopId);
 
   return <ClientsClient initialClients={clients} />;
 }
