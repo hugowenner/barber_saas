@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  CalendarDays,
   Calendar,
   Users,
   Scissors,
@@ -16,6 +17,7 @@ import { SITE_CONFIG } from "@/data/business";
 
 const NAV = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "Agenda", href: "/admin/agenda", icon: CalendarDays },
   { label: "Agendamentos", href: "/admin/appointments", icon: Calendar },
   { label: "Clientes", href: "/admin/clients", icon: Users },
   { label: "Barbeiros", href: "/admin/barbers", icon: Scissors },
