@@ -1,4 +1,4 @@
-import { PrismaClient, AppointmentStatus } from "@prisma/client";
+import { PrismaClient, AppointmentStatus, BarbershopPlan } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const db = new PrismaClient();
@@ -6,10 +6,10 @@ const db = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
-  // Barbershop
+  // ── Barbershop A — BASIC (existing, kept for continuity) ──────────────────
   const shop = await db.barbershop.upsert({
     where: { slug: "barber-house" },
-    update: {},
+    update: { plan: "BASIC", status: "ACTIVE" },
     create: {
       slug: "barber-house",
       name: "Barber House",
@@ -24,6 +24,56 @@ async function main() {
       city: "São Paulo",
       state: "SP",
       zip: "01310-000",
+      plan: "BASIC",
+      status: "ACTIVE",
+      isActive: true,
+    },
+  });
+
+  // ── Barbershop B — PRO ────────────────────────────────────────────────────
+  const shopPro = await db.barbershop.upsert({
+    where: { slug: "studio-alpha" },
+    update: { plan: "PRO", status: "ACTIVE" },
+    create: {
+      slug: "studio-alpha",
+      name: "Studio Alpha",
+      tagline: "Cortes modernos com personalidade",
+      phone: "(21) 98888-1111",
+      whatsapp: "5521988881111",
+      email: "contato@studioalpha.com.br",
+      instagram: "@studioalpha",
+      street: "Av. Atlântica",
+      number: "500",
+      district: "Copacabana",
+      city: "Rio de Janeiro",
+      state: "RJ",
+      zip: "22010-000",
+      plan: "PRO",
+      status: "ACTIVE",
+      isActive: true,
+    },
+  });
+
+  // ── Barbershop C — PREMIUM ────────────────────────────────────────────────
+  const shopPremium = await db.barbershop.upsert({
+    where: { slug: "the-gentleman" },
+    update: { plan: "PREMIUM", status: "ACTIVE" },
+    create: {
+      slug: "the-gentleman",
+      name: "The Gentleman",
+      tagline: "A experiência definitiva em grooming",
+      phone: "(31) 97777-2222",
+      whatsapp: "5531977772222",
+      email: "contato@thegentleman.com.br",
+      instagram: "@thegentleman",
+      street: "Rua Alvares Cabral",
+      number: "300",
+      district: "Lourdes",
+      city: "Belo Horizonte",
+      state: "MG",
+      zip: "30170-000",
+      plan: "PREMIUM",
+      status: "ACTIVE",
       isActive: true,
     },
   });
@@ -283,7 +333,7 @@ async function main() {
     }
   }
 
-  // Admin user — credentials from env vars
+  // ── Admin: Barber House (BASIC) — from env vars ───────────────────────────
   const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@barberhouse.com.br").toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin@123!";
   const passwordHash = await bcrypt.hash(adminPassword, 12);
@@ -300,13 +350,61 @@ async function main() {
     },
   });
 
+  // ── Admin: Studio Alpha (PRO) ─────────────────────────────────────────────
+  const proHash = await bcrypt.hash("StudioAlpha@123!", 12);
+  await db.admin.upsert({
+    where: { email: "admin@studioalpha.com.br" },
+    update: { barbershopId: shopPro.id },
+    create: {
+      email: "admin@studioalpha.com.br",
+      name: "Admin Studio Alpha",
+      passwordHash: proHash,
+      role: "OWNER",
+      barbershopId: shopPro.id,
+    },
+  });
+
+  // ── Admin: The Gentleman (PREMIUM) ───────────────────────────────────────
+  const premiumHash = await bcrypt.hash("Gentleman@123!", 12);
+  await db.admin.upsert({
+    where: { email: "admin@thegentleman.com.br" },
+    update: { barbershopId: shopPremium.id },
+    create: {
+      email: "admin@thegentleman.com.br",
+      name: "Admin The Gentleman",
+      passwordHash: premiumHash,
+      role: "OWNER",
+      barbershopId: shopPremium.id,
+    },
+  });
+
+  // ── SUPER_ADMIN (platform) — from env vars ────────────────────────────────
+  const superEmail = (process.env.SUPER_ADMIN_EMAIL ?? "super@barbersaas.com.br").toLowerCase();
+  const superPassword = process.env.SUPER_ADMIN_PASSWORD ?? "SuperAdmin@123!";
+  const superHash = await bcrypt.hash(superPassword, 12);
+
+  await db.admin.upsert({
+    where: { email: superEmail },
+    update: { passwordHash: superHash },
+    create: {
+      email: superEmail,
+      name: "Super Admin",
+      passwordHash: superHash,
+      role: "SUPER_ADMIN",
+      barbershopId: null,
+    },
+  });
+
   console.log("Seed complete.");
-  console.log(`  Barbershop: ${shop.name}`);
+  console.log(`  Barbershops: ${shop.name} (BASIC), ${shopPro.name} (PRO), ${shopPremium.name} (PREMIUM)`);
   console.log(`  Services: ${services.length}`);
   console.log(`  Barbers: ${barbers.length}`);
   console.log(`  Clients: ${clients.length}`);
   console.log(`  Appointments: ${apptTemplates.length}`);
-  console.log(`  Admin: ${adminEmail}`);
+  console.log(`  Admin (BASIC): ${adminEmail}`);
+  console.log(`  Admin (PRO):   admin@studioalpha.com.br`);
+  console.log(`  Admin (PREMIUM): admin@thegentleman.com.br`);
+  console.log(`  SUPER_ADMIN:   ${superEmail}`);
 }
 
 main()

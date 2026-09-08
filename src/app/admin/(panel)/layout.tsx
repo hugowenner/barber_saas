@@ -7,7 +7,14 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (!session) redirect("/admin/login");
 
   return (
-    <AdminShell user={{ name: session.name, email: session.email, role: session.role }}>
+    <AdminShell
+      user={{
+        name: session.name,
+        email: session.email,
+        role: session.role,
+        barbershopPlan: session.barbershopPlan,
+      }}
+    >
       {children}
     </AdminShell>
   );

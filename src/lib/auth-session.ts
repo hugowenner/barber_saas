@@ -1,16 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { AdminRole } from "@prisma/client";
+import type { AdminRole, BarbershopPlan } from "@prisma/client";
 
 export const SESSION_COOKIE = "admin_session";
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
 export interface SessionPayload {
-  sub: string;       // admin.id
+  sub: string;           // admin.id
   email: string;
   name: string;
   role: AdminRole;
-  barbershopId: string;
+  barbershopId: string | null;        // null for SUPER_ADMIN
+  barbershopPlan: BarbershopPlan | null; // null for SUPER_ADMIN
 }
 
 function getSecret(): Uint8Array {
@@ -55,4 +56,9 @@ export function sessionCookieOptions(maxAge: number) {
     path: "/",
     maxAge,
   };
+}
+
+/** True only for the platform super-administrator. */
+export function isSuperAdmin(session: SessionPayload | null): boolean {
+  return session?.role === "SUPER_ADMIN";
 }

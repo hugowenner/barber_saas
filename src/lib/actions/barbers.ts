@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth-session";
 
-async function requireSession() {
+async function requireBarbershopSession(): Promise<{ barbershopId: string }> {
   const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
-  return session;
+  if (!session || !session.barbershopId) throw new Error("Unauthorized");
+  return { barbershopId: session.barbershopId };
 }
 
 export async function createBarber(data: {
@@ -16,7 +16,7 @@ export async function createBarber(data: {
   bio?: string;
   imageUrl?: string | null;
 }) {
-  const { barbershopId } = await requireSession();
+  const { barbershopId } = await requireBarbershopSession();
   await db.barber.create({
     data: { barbershopId, ...data, isActive: true },
   });
@@ -30,13 +30,13 @@ export async function updateBarber(id: string, data: {
   imageUrl?: string | null;
   isActive?: boolean;
 }) {
-  const { barbershopId } = await requireSession();
+  const { barbershopId } = await requireBarbershopSession();
   await db.barber.updateMany({ where: { id, barbershopId }, data });
   revalidatePath("/admin/barbers");
 }
 
 export async function deleteBarber(id: string) {
-  const { barbershopId } = await requireSession();
+  const { barbershopId } = await requireBarbershopSession();
   await db.barber.updateMany({ where: { id, barbershopId }, data: { isActive: false } });
   revalidatePath("/admin/barbers");
 }

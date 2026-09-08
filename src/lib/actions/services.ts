@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth-session";
 
-async function requireSession() {
+async function requireBarbershopSession(): Promise<{ barbershopId: string }> {
   const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
-  return session;
+  if (!session || !session.barbershopId) throw new Error("Unauthorized");
+  return { barbershopId: session.barbershopId };
 }
 
 export async function createService(data: {
@@ -16,7 +16,7 @@ export async function createService(data: {
   durationMin: number;
   priceBRL: number;
 }) {
-  const { barbershopId } = await requireSession();
+  const { barbershopId } = await requireBarbershopSession();
   await db.service.create({
     data: {
       barbershopId,
@@ -37,7 +37,7 @@ export async function updateService(id: string, data: {
   priceBRL?: number;
   isActive?: boolean;
 }) {
-  const { barbershopId } = await requireSession();
+  const { barbershopId } = await requireBarbershopSession();
   const { priceBRL, ...rest } = data;
   await db.service.updateMany({
     where: { id, barbershopId },
@@ -50,7 +50,7 @@ export async function updateService(id: string, data: {
 }
 
 export async function deleteService(id: string) {
-  const { barbershopId } = await requireSession();
+  const { barbershopId } = await requireBarbershopSession();
   await db.service.updateMany({ where: { id, barbershopId }, data: { isActive: false } });
   revalidatePath("/admin/services");
 }

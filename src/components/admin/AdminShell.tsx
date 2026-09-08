@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
-import type { AdminRole } from "@prisma/client";
+import type { AdminRole, BarbershopPlan } from "@prisma/client";
 
 export interface AdminUser {
   name: string;
   email: string;
   role: AdminRole;
+  barbershopPlan: BarbershopPlan | null;
 }
 
 export function AdminShell({ children, user }: { children: React.ReactNode; user: AdminUser }) {

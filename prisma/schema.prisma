@@ -45,6 +45,10 @@ model Barbershop {
   zip      String?
   mapsQuery String?
 
+  // SaaS plan & lifecycle
+  plan   BarbershopPlan   @default(BASIC)
+  status BarbershopStatus @default(ACTIVE)
+
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -70,6 +74,8 @@ model Admin {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([barbershopId])
 }
 
 enum AdminRole {
@@ -77,6 +83,18 @@ enum AdminRole {
   OWNER
   MANAGER
   BARBER
+}
+
+enum BarbershopPlan {
+  BASIC
+  PRO
+  PREMIUM
+}
+
+enum BarbershopStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
 }
 
 // -----------------------------
