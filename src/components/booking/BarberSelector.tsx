@@ -3,7 +3,6 @@
 import { BarberCard } from "@/components/home/BarberCard";
 import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BARBERS } from "@/data/barbers";
 import type { Barber } from "@/types";
 
 interface BarberSelectorProps {
@@ -11,6 +10,7 @@ interface BarberSelectorProps {
   anyBarber: boolean;
   onSelectBarber: (barber: Barber) => void;
   onSelectAny: () => void;
+  barbers: Barber[];
 }
 
 export function BarberSelector({
@@ -18,6 +18,7 @@ export function BarberSelector({
   anyBarber,
   onSelectBarber,
   onSelectAny,
+  barbers,
 }: BarberSelectorProps) {
   return (
     <div className="space-y-6">
@@ -30,7 +31,6 @@ export function BarberSelector({
         </p>
       </header>
 
-      {/* "Any barber" option */}
       <button
         type="button"
         onClick={onSelectAny}
@@ -63,7 +63,7 @@ export function BarberSelector({
       </button>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {BARBERS.map((b) => (
+        {barbers.map((b) => (
           <li key={b.id}>
             <BarberCard
               barber={b}

@@ -3,26 +3,19 @@
 import { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getOpenDays } from "@/data/availability";
+import { getOpenDays, type HourConfig } from "@/data/availability";
 import { formatDateShort, formatWeekdayShort } from "@/lib/format";
 import { useIsClient } from "@/hooks/use-is-client";
 
 interface DateSelectorProps {
   value: string | null; // yyyy-mm-dd
   onSelect: (iso: string) => void;
+  businessHours: HourConfig[];
 }
 
-/**
- * Date picker rendered as a horizontal scroller of the next N open days.
- *
- * Days are computed client-side only — `getOpenDays()` uses `new Date()`
- * which differs between server and client. `useIsClient` returns `false`
- * during SSR and the first client render, so we render a stable skeleton
- * and avoid hydration mismatches.
- */
-export function DateSelector({ value, onSelect }: DateSelectorProps) {
+export function DateSelector({ value, onSelect, businessHours }: DateSelectorProps) {
   const isClient = useIsClient();
-  const days = isClient ? getOpenDays(6) : [];
+  const days = isClient ? getOpenDays(6, new Date(), businessHours) : [];
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -53,9 +46,7 @@ export function DateSelector({ value, onSelect }: DateSelectorProps) {
         <h2 className="font-display text-3xl tracking-[0.04em] text-foreground sm:text-4xl">
           Escolha a data
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Próximos dias disponíveis.
-        </p>
+        <p className="text-sm text-muted-foreground">Proximos dias disponiveis.</p>
       </header>
 
       <div className="relative">
@@ -74,11 +65,10 @@ export function DateSelector({ value, onSelect }: DateSelectorProps) {
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="radiogroup"
-          aria-label="Dias disponíveis"
+          aria-label="Dias disponiveis"
         >
           {!isClient
-            ? // Skeleton — stable across SSR/CSR
-              Array.from({ length: 6 }).map((_, i) => (
+            ? Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
                   className="h-[88px] w-20 shrink-0 animate-pulse rounded-lg border border-border bg-card"
@@ -105,9 +95,7 @@ export function DateSelector({ value, onSelect }: DateSelectorProps) {
                     <span
                       className={cn(
                         "text-xs uppercase tracking-wider",
-                        selected
-                          ? "text-primary-foreground/80"
-                          : "text-muted-foreground",
+                        selected ? "text-primary-foreground/80" : "text-muted-foreground",
                       )}
                     >
                       {formatWeekdayShort(d)}
@@ -124,7 +112,7 @@ export function DateSelector({ value, onSelect }: DateSelectorProps) {
           <button
             type="button"
             onClick={() => scroll("right")}
-            aria-label="Próximas datas"
+            aria-label="Proximas datas"
             className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 size-9 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-secondary sm:flex"
           >
             <ChevronRight className="size-4" />

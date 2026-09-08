@@ -350,6 +350,152 @@ async function main() {
     },
   });
 
+  // ── Studio Alpha (PRO) — barbers, services, clients ─────────────────────
+  await db.businessHour.deleteMany({ where: { barbershopId: shopPro.id, barberId: null } });
+  for (const h of weekdays) {
+    await db.businessHour.create({
+      data: { barbershopId: shopPro.id, weekday: h.weekday, openMin: 10 * 60, closeMin: h.closeMin ?? 20 * 60 },
+    });
+  }
+
+  const [svcAlphaCorte, svcAlphaBarba, svcAlphaCombo] = await Promise.all([
+    db.service.upsert({
+      where: { id: "svc-alpha-corte" },
+      update: {},
+      create: { id: "svc-alpha-corte", barbershopId: shopPro.id, name: "Corte Moderno", description: "Corte com tecnicas contemporaneas.", durationMin: 35, priceCents: 5500, isActive: true, sortOrder: 1 },
+    }),
+    db.service.upsert({
+      where: { id: "svc-alpha-barba" },
+      update: {},
+      create: { id: "svc-alpha-barba", barbershopId: shopPro.id, name: "Barba Completa", description: "Barba com navlha e hidratacao.", durationMin: 25, priceCents: 3500, isActive: true, sortOrder: 2 },
+    }),
+    db.service.upsert({
+      where: { id: "svc-alpha-combo" },
+      update: {},
+      create: { id: "svc-alpha-combo", barbershopId: shopPro.id, name: "Combo Alpha", description: "Corte + barba + finalizacao.", durationMin: 60, priceCents: 8500, isActive: true, sortOrder: 3 },
+    }),
+  ]);
+
+  const [bAlpha1, bAlpha2] = await Promise.all([
+    db.barber.upsert({
+      where: { id: "brb-alpha-leo" },
+      update: {},
+      create: { id: "brb-alpha-leo", barbershopId: shopPro.id, name: "Leonardo Ramos", specialty: "Cortes modernos", bio: "Especialista em fade e texturas.", imageUrl: null, isActive: true, sortOrder: 1 },
+    }),
+    db.barber.upsert({
+      where: { id: "brb-alpha-vin" },
+      update: {},
+      create: { id: "brb-alpha-vin", barbershopId: shopPro.id, name: "Vinicius Gomes", specialty: "Barba e skin fade", bio: "Mestre em barba e tratamentos.", imageUrl: null, isActive: true, sortOrder: 2 },
+    }),
+  ]);
+
+  const alphaClientsData = [
+    { id: "cli-alpha-01", name: "Rodrigo Nunes", phone: "21991110001", email: "rodrigo@email.com" },
+    { id: "cli-alpha-02", name: "Gustavo Torres", phone: "21991110002", email: null },
+    { id: "cli-alpha-03", name: "Eduardo Pinto", phone: "21991110003", email: "edu@email.com" },
+  ];
+  const alphaClients = await Promise.all(
+    alphaClientsData.map((c) =>
+      db.client.upsert({
+        where: { barbershopId_phone: { barbershopId: shopPro.id, phone: c.phone } },
+        update: {},
+        create: { id: c.id, barbershopId: shopPro.id, name: c.name, phone: c.phone, email: c.email, isActive: true },
+      })
+    )
+  );
+
+  await db.appointment.deleteMany({ where: { barbershopId: shopPro.id } });
+  const alphaToday = new Date(); alphaToday.setHours(0, 0, 0, 0);
+  const alphaAppts = [
+    { dayOffset: 0, startMin: 10 * 60, dur: 35, clientIdx: 0, barber: bAlpha1, svc: svcAlphaCorte, status: "CONFIRMED" as const },
+    { dayOffset: 0, startMin: 11 * 60, dur: 60, clientIdx: 1, barber: bAlpha2, svc: svcAlphaCombo, status: "PENDING" as const },
+    { dayOffset: -1, startMin: 14 * 60, dur: 35, clientIdx: 2, barber: bAlpha1, svc: svcAlphaCorte, status: "COMPLETED" as const },
+    { dayOffset: 1, startMin: 10 * 60, dur: 25, clientIdx: 0, barber: bAlpha2, svc: svcAlphaBarba, status: "CONFIRMED" as const },
+  ];
+  for (const t of alphaAppts) {
+    const cli = alphaClients[t.clientIdx];
+    const start = new Date(alphaToday.getTime() + t.dayOffset * 86400000 + t.startMin * 60000);
+    const end = new Date(start.getTime() + t.dur * 60000);
+    await db.appointment.create({
+      data: { barbershopId: shopPro.id, serviceId: t.svc.id, barberId: t.barber.id, clientId: cli.id, anyBarber: false, startAt: start, endAt: end, customerName: cli.name, customerPhone: cli.phone, status: t.status, priceCents: t.svc.priceCents },
+    });
+  }
+
+  // ── The Gentleman (PREMIUM) — barbers, services, clients ─────────────────
+  await db.businessHour.deleteMany({ where: { barbershopId: shopPremium.id, barberId: null } });
+  const gentWeekdays = [
+    { weekday: 1, label: "Segunda" }, { weekday: 2, label: "Terca" }, { weekday: 3, label: "Quarta" },
+    { weekday: 4, label: "Quinta" }, { weekday: 5, label: "Sexta" }, { weekday: 6, label: "Sabado", closeMin: 18 * 60 },
+  ];
+  for (const h of gentWeekdays) {
+    await db.businessHour.create({
+      data: { barbershopId: shopPremium.id, weekday: h.weekday, openMin: 9 * 60, closeMin: h.closeMin ?? 21 * 60 },
+    });
+  }
+
+  const [svcGentCorte, svcGentGrooming, svcGentExperience] = await Promise.all([
+    db.service.upsert({
+      where: { id: "svc-gent-corte" },
+      update: {},
+      create: { id: "svc-gent-corte", barbershopId: shopPremium.id, name: "Corte Premium", description: "Corte exclusivo com lavagem e finalizacao.", durationMin: 45, priceCents: 8000, isActive: true, sortOrder: 1 },
+    }),
+    db.service.upsert({
+      where: { id: "svc-gent-grooming" },
+      update: {},
+      create: { id: "svc-gent-grooming", barbershopId: shopPremium.id, name: "Grooming Completo", description: "Barba, sobrancelha e hidratacao facial.", durationMin: 40, priceCents: 7000, isActive: true, sortOrder: 2 },
+    }),
+    db.service.upsert({
+      where: { id: "svc-gent-exp" },
+      update: {},
+      create: { id: "svc-gent-exp", barbershopId: shopPremium.id, name: "The Gentleman Experience", description: "Experiencia completa: corte + grooming + tratamento capilar.", durationMin: 90, priceCents: 15000, isActive: true, sortOrder: 3 },
+    }),
+  ]);
+
+  const [bGent1, bGent2] = await Promise.all([
+    db.barber.upsert({
+      where: { id: "brb-gent-marcos" },
+      update: {},
+      create: { id: "brb-gent-marcos", barbershopId: shopPremium.id, name: "Marcos Freitas", specialty: "Cortes classicos e premium", bio: "15 anos de experiencia em barbearias de luxo.", imageUrl: null, isActive: true, sortOrder: 1 },
+    }),
+    db.barber.upsert({
+      where: { id: "brb-gent-alan" },
+      update: {},
+      create: { id: "brb-gent-alan", barbershopId: shopPremium.id, name: "Alan Borges", specialty: "Grooming e cuidados faciais", bio: "Especialista em grooming masculino de alto padrao.", imageUrl: null, isActive: true, sortOrder: 2 },
+    }),
+  ]);
+
+  const gentClientsData = [
+    { id: "cli-gent-01", name: "Henrique Machado", phone: "31991110001", email: "henrique@email.com" },
+    { id: "cli-gent-02", name: "Caio Silveira", phone: "31991110002", email: null },
+    { id: "cli-gent-03", name: "Diego Campos", phone: "31991110003", email: "diego@email.com" },
+  ];
+  const gentClients = await Promise.all(
+    gentClientsData.map((c) =>
+      db.client.upsert({
+        where: { barbershopId_phone: { barbershopId: shopPremium.id, phone: c.phone } },
+        update: {},
+        create: { id: c.id, barbershopId: shopPremium.id, name: c.name, phone: c.phone, email: c.email, isActive: true },
+      })
+    )
+  );
+
+  await db.appointment.deleteMany({ where: { barbershopId: shopPremium.id } });
+  const gentToday = new Date(); gentToday.setHours(0, 0, 0, 0);
+  const gentAppts = [
+    { dayOffset: 0, startMin: 9 * 60, dur: 90, clientIdx: 0, barber: bGent1, svc: svcGentExperience, status: "CONFIRMED" as const },
+    { dayOffset: 0, startMin: 11 * 60, dur: 40, clientIdx: 2, barber: bGent2, svc: svcGentGrooming, status: "PENDING" as const },
+    { dayOffset: -1, startMin: 10 * 60, dur: 45, clientIdx: 1, barber: bGent1, svc: svcGentCorte, status: "COMPLETED" as const },
+    { dayOffset: 1, startMin: 14 * 60, dur: 90, clientIdx: 2, barber: bGent1, svc: svcGentExperience, status: "CONFIRMED" as const },
+  ];
+  for (const t of gentAppts) {
+    const cli = gentClients[t.clientIdx];
+    const start = new Date(gentToday.getTime() + t.dayOffset * 86400000 + t.startMin * 60000);
+    const end = new Date(start.getTime() + t.dur * 60000);
+    await db.appointment.create({
+      data: { barbershopId: shopPremium.id, serviceId: t.svc.id, barberId: t.barber.id, clientId: cli.id, anyBarber: false, startAt: start, endAt: end, customerName: cli.name, customerPhone: cli.phone, status: t.status, priceCents: t.svc.priceCents },
+    });
+  }
+
   // ── Admin: Studio Alpha (PRO) ─────────────────────────────────────────────
   const proHash = await bcrypt.hash("StudioAlpha@123!", 12);
   await db.admin.upsert({
@@ -397,14 +543,10 @@ async function main() {
 
   console.log("Seed complete.");
   console.log(`  Barbershops: ${shop.name} (BASIC), ${shopPro.name} (PRO), ${shopPremium.name} (PREMIUM)`);
-  console.log(`  Services: ${services.length}`);
-  console.log(`  Barbers: ${barbers.length}`);
-  console.log(`  Clients: ${clients.length}`);
-  console.log(`  Appointments: ${apptTemplates.length}`);
-  console.log(`  Admin (BASIC): ${adminEmail}`);
-  console.log(`  Admin (PRO):   admin@studioalpha.com.br`);
-  console.log(`  Admin (PREMIUM): admin@thegentleman.com.br`);
-  console.log(`  SUPER_ADMIN:   ${superEmail}`);
+  console.log(`  Admin (BASIC):   ${adminEmail} / Admin@123!`);
+  console.log(`  Admin (PRO):     admin@studioalpha.com.br / StudioAlpha@123!`);
+  console.log(`  Admin (PREMIUM): admin@thegentleman.com.br / Gentleman@123!`);
+  console.log(`  SUPER_ADMIN:     ${superEmail} / SuperAdmin@123!`);
 }
 
 main()
