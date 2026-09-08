@@ -21,7 +21,6 @@ import { createPublicBooking } from "@/lib/actions/booking";
 import type { Barber, BookingStep, Service } from "@/types";
 
 interface ShopInfo {
-  id: string;
   name: string;
   whatsapp: string;
   address: string;
@@ -99,16 +98,13 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
     if (!booking.service || !booking.date || !booking.time) return;
     startTransition(async () => {
       const result = await createPublicBooking({
-        barbershopId: shop.id,
         serviceId: booking.service!.id,
         barberId: booking.anyBarber ? null : (booking.barber?.id ?? null),
         anyBarber: booking.anyBarber,
         date: booking.date!,
         time: booking.time!,
-        durationMin: booking.service!.durationMin,
         customerName: booking.customerName,
         customerPhone: booking.customerPhone,
-        priceCents: Math.round(booking.service!.priceBRL * 100),
       });
       if (result.ok) {
         booking.confirm();

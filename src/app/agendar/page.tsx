@@ -31,7 +31,6 @@ export default async function AgendarPage() {
       barbers={barbers}
       businessHours={businessHours}
       shop={{
-        id: shop.id,
         name: shop.name,
         whatsapp: shop.whatsapp ?? "",
         address: `${shop.street}, ${shop.number} — ${shop.city}/${shop.state}`,
