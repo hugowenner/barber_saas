@@ -1,19 +1,32 @@
 import type { Metadata } from "next";
-import { CalendarDays, Clock, TrendingUp, Users } from "lucide-react";
+import { CalendarDays, Clock, Users } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
 import {
   DashboardStats,
   UpcomingAppointments,
   BarberSummary,
 } from "@/components/admin/DashboardStats";
-import { getDashboardStats } from "@/data/admin/stats";
+import { getBarbershop } from "@/lib/data/barbershop";
+import { getDashboardStats } from "@/lib/data/dashboard";
 
 export const metadata: Metadata = {
   title: "Dashboard",
 };
 
-export default function DashboardPage() {
-  const stats = getDashboardStats();
+export default async function DashboardPage() {
+  const shop = await getBarbershop();
+  const stats = shop
+    ? await getDashboardStats(shop.id)
+    : {
+        todayTotal: 0,
+        todayConfirmed: 0,
+        todayPending: 0,
+        todayCompleted: 0,
+        todayRevenueBRL: 0,
+        upcomingToday: [],
+        barberSummary: [],
+      };
+
   const greeting = getGreeting();
 
   return (
@@ -23,7 +36,6 @@ export default function DashboardPage() {
         description="Resumo do dia na barbearia."
       />
 
-      {/* KPI cards */}
       <section aria-label="Indicadores de hoje">
         <div className="mb-3 flex items-center gap-2">
           <CalendarDays className="size-4 text-primary" />
@@ -32,9 +44,7 @@ export default function DashboardPage() {
         <DashboardStats stats={stats} />
       </section>
 
-      {/* Upcoming + barber summary */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Upcoming appointments — takes 2 cols on desktop */}
         <section aria-labelledby="upcoming-heading" className="lg:col-span-2">
           <div className="mb-3 flex items-center gap-2">
             <Clock className="size-4 text-primary" />
@@ -45,7 +55,6 @@ export default function DashboardPage() {
           <UpcomingAppointments appointments={stats.upcomingToday} />
         </section>
 
-        {/* Barber summary */}
         <section aria-labelledby="barber-summary-heading">
           <div className="mb-3 flex items-center gap-2">
             <Users className="size-4 text-primary" />

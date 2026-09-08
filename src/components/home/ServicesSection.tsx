@@ -2,9 +2,13 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { SectionHeading } from "./SectionHeading";
 import { ServiceCard } from "./ServiceCard";
-import { SERVICES } from "@/data/services";
+import type { Service } from "@/types";
 
-export function ServicesSection() {
+interface Props {
+  services: Service[];
+}
+
+export function ServicesSection({ services }: Props) {
   return (
     <section
       id="servicos"
@@ -32,7 +36,7 @@ export function ServicesSection() {
           id="services-heading"
           className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
-          {SERVICES.map((service) => (
+          {services.map((service) => (
             <li key={service.id}>
               <ServiceCard service={service} />
             </li>

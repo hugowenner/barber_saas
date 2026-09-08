@@ -52,3 +52,11 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Database (Prisma resolves file:./db/custom.db relative to schema dir)
+db/custom.db
+prisma/db/
+
+# Dev scripts runtime artifacts
+.zscripts/*.pid
+.zscripts/*.log

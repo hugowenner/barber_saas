@@ -1,8 +1,12 @@
 import { SectionHeading } from "./SectionHeading";
 import { BarberCard } from "./BarberCard";
-import { BARBERS } from "@/data/barbers";
+import type { Barber } from "@/types";
 
-export function BarbersSection() {
+interface Props {
+  barbers: Barber[];
+}
+
+export function BarbersSection({ barbers }: Props) {
   return (
     <section
       id="barbeiros"
@@ -21,7 +25,7 @@ export function BarbersSection() {
           id="barbers-heading"
           className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {BARBERS.map((barber) => (
+          {barbers.map((barber) => (
             <li key={barber.id}>
               <BarberCard barber={barber} />
             </li>

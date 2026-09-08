@@ -52,6 +52,7 @@ model Barbershop {
   barbers      Barber[]
   services     Service[]
   appointments Appointment[]
+  clients      Client[]
   testimonials Testimonial[]
   admins       Admin[]
   hours        BusinessHour[]
@@ -240,7 +241,7 @@ model Testimonial {
   author   String
   context  String?
   quote    String
-  rating   Int    @db.SmallInt
+  rating   Int
   isPublic Boolean @default(true)
 
   createdAt DateTime @default(now())
