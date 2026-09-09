@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { SiteShell } from "@/components/layout/SiteShell";
@@ -16,14 +16,15 @@ import { BookingConfirmation } from "@/components/booking/BookingConfirmation";
 import { useBookingStore } from "@/lib/booking-store";
 import { useIsClient } from "@/hooks/use-is-client";
 import { useToast } from "@/hooks/use-toast";
-import { getTimeSlots, type HourConfig } from "@/data/availability";
-import { createPublicBooking } from "@/lib/actions/booking";
+import { getTimeSlots, type BookedInterval, type HourConfig, SLOT_INTERVAL_MIN } from "@/data/availability";
+import { createPublicBooking, getBookedSlots } from "@/lib/actions/booking";
 import type { Barber, BookingStep, Service } from "@/types";
 
 interface ShopInfo {
   name: string;
   whatsapp: string;
   address: string;
+  timezone: string;
 }
 
 interface BookingClientProps {
@@ -48,15 +49,41 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [userStep, setUserStep] = useState<BookingStep>("service");
+  const [bookedIntervals, setBookedIntervals] = useState<BookedInterval[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const step: BookingStep =
     isClient && booking.confirmed ? "confirmation" : userStep;
 
+  // Fetch real availability from the server whenever date or barber selection changes
+  useEffect(() => {
+    if (!booking.date) return;
+    let cancelled = false;
+    setIsLoadingSlots(true);
+    getBookedSlots(
+      booking.date,
+      booking.anyBarber ? null : (booking.barber?.id ?? null),
+      booking.anyBarber,
+    ).then((intervals) => {
+      if (!cancelled) {
+        setBookedIntervals(intervals);
+        setIsLoadingSlots(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [booking.date, booking.barber?.id, booking.anyBarber]);
+
   const slots = useMemo(() => {
     if (!booking.date) return [];
-    const d = new Date(`${booking.date}T12:00:00`);
-    return getTimeSlots(d, booking.anyBarber ? null : booking.barber, businessHours);
-  }, [booking.date, booking.barber, booking.anyBarber, businessHours]);
+    return getTimeSlots(
+      booking.date,
+      booking.anyBarber ? null : booking.barber,
+      businessHours,
+      bookedIntervals,
+      booking.service?.durationMin ?? SLOT_INTERVAL_MIN,
+      shop.timezone,
+    );
+  }, [booking.date, booking.barber, booking.anyBarber, businessHours, bookedIntervals, booking.service?.durationMin, shop.timezone]);
 
   const canAdvance: Record<BookingStep, boolean> = {
     service: Boolean(booking.service),
@@ -200,6 +227,7 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
                 onSelect={booking.setTime}
                 barber={booking.barber}
                 anyBarber={booking.anyBarber}
+                isLoading={isLoadingSlots}
               />
             ) : step === "customer" ? (
               <CustomerForm

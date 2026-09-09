@@ -209,7 +209,6 @@ model Appointment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([barberId, startAt])
   @@index([barbershopId, startAt])
   @@index([clientId, startAt])
   @@index([status])

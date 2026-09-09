@@ -2,8 +2,44 @@
 
 import { db } from "@/lib/db";
 import { getBarbershop } from "@/lib/data/barbershop";
-import { zonedToUtc, weekdayInTZ, minutesInTZ } from "@/lib/tz";
+import { zonedToUtc, weekdayInTZ, minutesInTZ, utcDayRange } from "@/lib/tz";
 import { Prisma } from "@prisma/client";
+
+export async function getBookedSlots(
+  date: string,
+  barberId: string | null,
+  anyBarber: boolean,
+): Promise<{ startAt: string; endAt: string }[]> {
+  const shop = await getBarbershop();
+  if (!shop) return [];
+
+  const tz = shop.timezone ?? "America/Sao_Paulo";
+  const { gte, lt } = utcDayRange(date, tz);
+
+  // Validate barberId belongs to this shop (prevents probing another tenant's schedule)
+  if (barberId && !anyBarber) {
+    const barberExists = await db.barber.findFirst({
+      where: { id: barberId, barbershopId: shop.id, isActive: true },
+      select: { id: true },
+    });
+    if (!barberExists) return [];
+  }
+
+  const appointments = await db.appointment.findMany({
+    where: {
+      barbershopId: shop.id,
+      startAt: { gte, lt },
+      status: { notIn: ["CANCELLED"] },
+      ...(barberId && !anyBarber ? { barberId } : {}),
+    },
+    select: { startAt: true, endAt: true },
+  });
+
+  return appointments.map((a) => ({
+    startAt: a.startAt.toISOString(),
+    endAt: a.endAt.toISOString(),
+  }));
+}
 
 export async function createPublicBooking(data: {
   serviceId: string;
@@ -15,6 +51,11 @@ export async function createPublicBooking(data: {
   customerPhone: string;
 }): Promise<{ ok: boolean; error?: string }> {
   try {
+    // Guard: specific-barber booking must have a barberId
+    if (!data.anyBarber && !data.barberId) {
+      return { ok: false, error: "Selecione um barbeiro." };
+    }
+
     const phone = data.customerPhone.replace(/\D/g, "");
 
     // barbershopId is always derived from the server — never trusted from client

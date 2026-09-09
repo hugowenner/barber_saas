@@ -10,6 +10,7 @@ interface TimeSelectorProps {
   onSelect: (time: string) => void;
   barber: Barber | null;
   anyBarber: boolean;
+  isLoading?: boolean;
 }
 
 export function TimeSelector({
@@ -18,6 +19,7 @@ export function TimeSelector({
   onSelect,
   barber,
   anyBarber,
+  isLoading = false,
 }: TimeSelectorProps) {
   const availableCount = slots.filter((s) => s.available).length;
   const barberLabel = anyBarber ? "qualquer barbeiro" : barber?.name ?? "—";
@@ -36,7 +38,12 @@ export function TimeSelector({
         </p>
       </header>
 
-      {availableCount === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+          <Clock className="mr-2 size-4 animate-spin" aria-hidden />
+          Verificando disponibilidade…
+        </div>
+      ) : availableCount === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-card/50 py-12 text-center">
           <Clock className="size-6 text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">

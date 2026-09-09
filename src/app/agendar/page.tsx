@@ -34,6 +34,7 @@ export default async function AgendarPage() {
         name: shop.name,
         whatsapp: shop.whatsapp ?? "",
         address: `${shop.street}, ${shop.number} — ${shop.city}/${shop.state}`,
+        timezone: shop.timezone ?? "America/Sao_Paulo",
       }}
     />
   );

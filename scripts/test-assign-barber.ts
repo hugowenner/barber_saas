@@ -383,7 +383,7 @@ async function main() {
         "  [NOTA] SQLite BEGIN IMMEDIATE serializa transações — ambas competiram e uma falhou com SQLITE_BUSY.",
       );
       console.log(
-        "  [NOTA] O @@unique([barberId, startAt]) provê proteção adicional mas não foi necessário neste caso.",
+        "  [NOTA] A proteção contra dupla-atribuição é provida pelo conflict check dentro da transação.",
       );
       console.log(
         "  [NOTA] LIMITAÇÃO: overlap concorrente (horários diferentes mas sobrepostos) não possui garantia DB-level",

@@ -1,6 +1,8 @@
+import { zonedToUtc, weekdayInTZ, formatTimeInTZ } from "@/lib/tz";
 import type { Barber, TimeSlot } from "@/types";
 
 export type HourConfig = { weekday: number; open: string; close: string };
+export type BookedInterval = { startAt: string; endAt: string };
 
 export const SLOT_INTERVAL_MIN = 30;
 
@@ -34,51 +36,56 @@ export function getOpenDays(
   return days;
 }
 
+/**
+ * Generate time slots for a calendar date in the shop's timezone.
+ *
+ * Deterministic regardless of process.env.TZ: all timestamps are computed via
+ * `zonedToUtc` (Intl-based), so results are identical on a UTC server, a BRT
+ * browser, and in CI.
+ *
+ * @param dateStr         YYYY-MM-DD calendar date in the shop timezone.
+ * @param barber          Currently selected barber (unused after isMockBooked removal; kept for API stability).
+ * @param businessHours   Shop or barber business hours.
+ * @param bookedIntervals UTC ISO intervals from the DB (via getBookedSlots Server Action).
+ * @param serviceDurationMin  Duration of the selected service; used for overlap check.
+ * @param timezone        IANA timezone of the shop (e.g. "America/Sao_Paulo").
+ */
 export function getTimeSlots(
-  date: Date,
+  dateStr: string,
   barber: Barber | null,
   businessHours: HourConfig[] = [],
+  bookedIntervals: BookedInterval[] = [],
+  serviceDurationMin: number = SLOT_INTERVAL_MIN,
+  timezone: string = "America/Sao_Paulo",
 ): TimeSlot[] {
-  const weekday = date.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  // weekday derived in shop timezone — never from process.env.TZ
+  const weekday = weekdayInTZ(dateStr, timezone) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
   const hours = businessHours.find((h) => h.weekday === weekday);
   if (!hours) return [];
 
+  // Slot start/end times anchored to UTC via shop timezone open/close
+  const openUtc = zonedToUtc(`${dateStr}T${hours.open}:00`, timezone);
+  const closeUtc = zonedToUtc(`${dateStr}T${hours.close}:00`, timezone);
+  const lastStart = closeUtc.getTime() - SLOT_INTERVAL_MIN * 60_000;
+
+  const parsed = bookedIntervals.map((i) => ({
+    start: new Date(i.startAt).getTime(),
+    end: new Date(i.endAt).getTime(),
+  }));
+
+  const now = Date.now();
   const slots: TimeSlot[] = [];
-  const [openH, openM] = hours.open.split(":").map(Number);
-  const [closeH, closeM] = hours.close.split(":").map(Number);
+  let cursorMs = openUtc.getTime();
 
-  const cursor = new Date(date);
-  cursor.setHours(openH, openM, 0, 0);
-  const closeAt = new Date(date);
-  closeAt.setHours(closeH, closeM, 0, 0);
-  const lastStart = new Date(closeAt.getTime() - SLOT_INTERVAL_MIN * 60_000);
-
-  while (cursor <= lastStart) {
-    const time = formatTime(cursor);
-    const isPast = isSameDay(cursor, new Date()) && cursor < new Date();
-    const booked = isMockBooked(date, time, barber?.id ?? "any");
-    slots.push({ time, available: !isPast && !booked });
-    cursor.setMinutes(cursor.getMinutes() + SLOT_INTERVAL_MIN);
+  while (cursorMs <= lastStart) {
+    const slotEnd = cursorMs + serviceDurationMin * 60_000;
+    // Display time formatted in shop timezone — deterministic regardless of server TZ
+    const time = formatTimeInTZ(new Date(cursorMs).toISOString(), timezone);
+    // Overlap: slot [cursorMs, slotEnd) ∩ interval [start, end)
+    const booked = parsed.some((i) => cursorMs < i.end && slotEnd > i.start);
+    slots.push({ time, available: cursorMs >= now && !booked });
+    cursorMs += SLOT_INTERVAL_MIN * 60_000;
   }
 
   return slots;
-}
-
-function formatTime(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function isMockBooked(date: Date, time: string, barberId: string): boolean {
-  const seed = `${date.toISOString().slice(0, 10)}|${time}|${barberId}`;
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  return Math.abs(hash) % 100 < 30;
 }

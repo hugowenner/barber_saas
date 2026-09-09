@@ -10,6 +10,7 @@
 import { PrismaClient } from "@prisma/client";
 import { getBarbershop } from "../src/lib/data/barbershop";
 import { createPublicBooking } from "../src/lib/actions/booking";
+import { zonedToUtc } from "../src/lib/tz";
 
 const db = new PrismaClient({ log: [] });
 
@@ -37,7 +38,8 @@ async function seed() {
   const openMM = String(businessHour.openMin % 60).padStart(2, "0");
   const testTime = `${openHH}:${openMM}`;
 
-  return { shop, barber, service, testDate, testTime };
+  const tz = (shop as any).timezone ?? "America/Sao_Paulo";
+  return { shop, barber, service, testDate, testTime, tz };
 }
 
 function nextWeekday(weekday: number): string {
@@ -48,10 +50,12 @@ function nextWeekday(weekday: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-async function cleanup(barberId: string, date: string, time: string) {
-  const start = new Date(`${date}T${time}:00`);
+async function cleanup(barberId: string, date: string, time: string, tz: string) {
+  // Use zonedToUtc so the UTC timestamp matches exactly what createPublicBooking stores.
+  // new Date(`${date}T${time}:00`) was TZ-dependent and missed appointments in non-local TZ.
+  const startUtc = zonedToUtc(`${date}T${time}:00`, tz);
   await db.appointment.deleteMany({
-    where: { barberId, startAt: start },
+    where: { barberId, startAt: startUtc },
   });
 }
 
@@ -78,10 +82,11 @@ async function testExactDuplicates(
   date: string,
   time: string,
   n: number,
+  tz: string,
 ) {
   console.log(`\nScenário 1: ${n} requests simultâneos — ${date}T${time} (mesmo barbeiro)`);
 
-  await cleanup(barber.id, date, time);
+  await cleanup(barber.id, date, time, tz);
 
   const payload = {
     serviceId: service.id,
@@ -102,7 +107,7 @@ async function testExactDuplicates(
   assert(ok.length === 1, `Exatamente 1 agendamento criado (esperado: 1, obtido: ${ok.length})`);
   assert(err.length === n - 1, `${n - 1} requisições rejeitadas`);
 
-  await cleanup(barber.id, date, time);
+  await cleanup(barber.id, date, time, tz);
 }
 
 // ── Scenario 2: Overlapping intervals ─────────────────────────────────────────
@@ -112,10 +117,11 @@ async function testOverlappingIntervals(
   service: { id: string },
   date: string,
   openTime: string,
+  tz: string,
 ) {
   console.log(`\nScenário 2: intervalos sobrepostos — ${date}`);
 
-  await cleanup(barber.id, date, openTime);
+  await cleanup(barber.id, date, openTime, tz);
 
   // Request A: openTime (e.g. 10:00)
   // Request B: openTime + 15min (e.g. 10:15) — overlaps if service.durationMin > 15
@@ -123,7 +129,7 @@ async function testOverlappingIntervals(
   const totalMin = hh * 60 + mm + 15;
   const time2 = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
 
-  await cleanup(barber.id, date, time2);
+  await cleanup(barber.id, date, time2, tz);
 
   const basePayload = {
     serviceId: service.id,
@@ -154,8 +160,8 @@ async function testOverlappingIntervals(
     console.log(`  (Serviço de ${durationMin}min — intervalos de 15min são não-sobrepostos; ambos podem ser aceitos)`);
   }
 
-  await cleanup(barber.id, date, openTime);
-  await cleanup(barber.id, date, time2);
+  await cleanup(barber.id, date, openTime, tz);
+  await cleanup(barber.id, date, time2, tz);
 }
 
 // ── main ──────────────────────────────────────────────────────────────────────
@@ -165,15 +171,15 @@ async function main() {
   console.log("Teste de concorrência — double-booking protection");
   console.log("=".repeat(60));
 
-  const { barber, service, testDate, testTime } = await seed();
+  const { barber, service, testDate, testTime, tz } = await seed();
 
   console.log(`\nBarbearia: ${(await getBarbershop())?.name}`);
   console.log(`Barbeiro:  ${barber.id}`);
   console.log(`Serviço:   ${service.id}`);
   console.log(`Data:      ${testDate}  Hora: ${testTime}`);
 
-  await testExactDuplicates(barber, service, testDate, testTime, 5);
-  await testOverlappingIntervals(barber, service, testDate, testTime);
+  await testExactDuplicates(barber, service, testDate, testTime, 5, tz);
+  await testOverlappingIntervals(barber, service, testDate, testTime, tz);
 
   console.log("\n" + "=".repeat(60));
   console.log(`RESULTADO: ${passed} passou(aram) / ${failed} falhou(aram)`);
