@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Bebas_Neue, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { SITE_CONFIG } from "@/data/business";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,27 +22,28 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+const SAAS_DESCRIPTION =
+  "Barber House é a plataforma de gestão para barbearias modernas. Agendamento online, painel administrativo, múltiplos barbeiros e muito mais.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://barberhouse.example.com"),
   title: {
-    default: `${SITE_CONFIG.name} — Barbearia premium em ${SITE_CONFIG.address.city}`,
-    template: `%s · ${SITE_CONFIG.name}`,
+    default: "Barber House — Gestão para barbearias",
+    template: `%s · Barber House`,
   },
-  description: SITE_CONFIG.description,
+  description: SAAS_DESCRIPTION,
   keywords: [
-    "barbearia",
-    "barbearia premium",
-    `barbearia ${SITE_CONFIG.address.city}`,
-    "barbearia perto de mim",
-    "corte masculino",
-    "barba",
-    "corte e barba",
-    "agendamento barbearia",
-    "BARBER HOUSE",
+    "gestão barbearia",
+    "software barbearia",
+    "agendamento online barbearia",
+    "sistema para barbearia",
+    "painel barbearia",
+    "saas barbearia",
+    "Barber House",
   ],
-  authors: [{ name: SITE_CONFIG.name }],
-  creator: SITE_CONFIG.name,
-  publisher: SITE_CONFIG.name,
+  authors: [{ name: "Barber House" }],
+  creator: "Barber House",
+  publisher: "Barber House",
   alternates: {
     canonical: "/",
   },
@@ -51,22 +51,22 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     url: "/",
-    siteName: SITE_CONFIG.name,
-    title: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
-    description: SITE_CONFIG.description,
+    siteName: "Barber House",
+    title: "Barber House — Gestão para barbearias",
+    description: SAAS_DESCRIPTION,
     images: [
       {
         url: "/og.svg",
         width: 1200,
         height: 630,
-        alt: SITE_CONFIG.name,
+        alt: "Barber House",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
-    description: SITE_CONFIG.description,
+    title: "Barber House — Gestão para barbearias",
+    description: SAAS_DESCRIPTION,
     images: ["/og.svg"],
   },
   icons: {
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  category: "beauty",
+  category: "technology",
 };
 
 export const viewport: Viewport = {

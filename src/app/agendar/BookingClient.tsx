@@ -18,7 +18,7 @@ import { useIsClient } from "@/hooks/use-is-client";
 import { useToast } from "@/hooks/use-toast";
 import { getTimeSlots, type BookedInterval, type HourConfig, SLOT_INTERVAL_MIN } from "@/data/availability";
 import { createPublicBooking, getBookedSlots } from "@/lib/actions/booking";
-import type { Barber, BookingStep, Service } from "@/types";
+import type { Barber, BookingStep, FooterShopData, Service } from "@/types";
 
 interface ShopInfo {
   name: string;
@@ -34,6 +34,7 @@ interface BookingClientProps {
   shop: ShopInfo;
   barbershopSlug: string;
   backHref?: string;
+  footerData?: FooterShopData;
 }
 
 const STEP_ORDER: BookingStep[] = [
@@ -52,6 +53,7 @@ export function BookingClient({
   shop,
   barbershopSlug,
   backHref = "/",
+  footerData,
 }: BookingClientProps) {
   const booking = useBookingStore();
   const isClient = useIsClient();
@@ -177,7 +179,7 @@ export function BookingClient({
   const showSummary = step === "confirmation" && !booking.confirmed;
 
   return (
-    <SiteShell>
+    <SiteShell footerData={footerData}>
       <div className="container-section py-8 sm:py-12">
         <Link
           href={backHref}

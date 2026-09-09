@@ -11,7 +11,7 @@ import { FinalCta } from "@/components/home/FinalCta";
 import { getBarbershopBySlug, getBusinessHours, getTestimonials } from "@/lib/data/barbershop";
 import { getBarbers } from "@/lib/data/barbers";
 import { getServices } from "@/lib/data/services";
-import type { BusinessHours } from "@/types";
+import type { BusinessHours, FooterShopData } from "@/types";
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Segunda",
@@ -62,8 +62,28 @@ export default async function BarbershopPage({ params }: Props) {
 
   const bookingHref = `/${barbershopSlug}/agendar`;
 
+  const footerData: FooterShopData = {
+    name: shop.name,
+    tagline: shop.tagline ?? null,
+    phone: shop.phone ?? null,
+    whatsapp: shop.whatsapp ?? null,
+    instagram: shop.instagram ?? null,
+    street: shop.street ?? null,
+    number: shop.number ?? null,
+    district: shop.district ?? null,
+    city: shop.city ?? null,
+    state: shop.state ?? null,
+    mapsQuery: shop.mapsQuery ?? null,
+    hours: hours.map((h) => ({
+      weekday: h.weekday,
+      open: h.open,
+      close: h.close,
+      label: h.label,
+    })),
+  };
+
   return (
-    <SiteShell>
+    <SiteShell footerData={footerData}>
       <Hero
         shop={{
           name: shop.name,

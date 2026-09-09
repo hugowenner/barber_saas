@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
 
 // Path segments that are NOT barbershop slugs
-const EXCLUDED = new Set(["agendar", "admin", "saas-admin", "api", ""]);
+const EXCLUDED = new Set(["agendar", "admin", "saas-admin", "api", "planos", ""]);
 
 type LinkProps = ComponentPropsWithoutRef<typeof Link>;
 

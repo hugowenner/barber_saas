@@ -3,12 +3,19 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, Calendar } from "lucide-react";
+import { Menu, X, Calendar, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/data/business";
 
-const EXCLUDED_SEGMENTS = new Set(["agendar", "admin", "saas-admin", "api", ""]);
+const EXCLUDED_SEGMENTS = new Set([
+  "agendar",
+  "admin",
+  "saas-admin",
+  "api",
+  "planos",
+  "",
+]);
 
 function useTenantBase() {
   const pathname = usePathname();
@@ -16,20 +23,26 @@ function useTenantBase() {
   return EXCLUDED_SEGMENTS.has(firstSegment) ? "/" : `/${firstSegment}`;
 }
 
+function useIsTenant() {
+  const pathname = usePathname();
+  const firstSegment = pathname.split("/")[1] ?? "";
+  return !EXCLUDED_SEGMENTS.has(firstSegment);
+}
+
 function useBookingHref() {
   const pathname = usePathname();
   const firstSegment = pathname.split("/")[1] ?? "";
   return EXCLUDED_SEGMENTS.has(firstSegment)
-    ? "/agendar"
+    ? "/planos"
     : `/${firstSegment}/agendar`;
 }
 
-interface NavItem {
+interface NavAnchor {
   label: string;
   anchor: string;
 }
 
-const NAV_ANCHORS: NavItem[] = [
+const TENANT_NAV: NavAnchor[] = [
   { label: "Início", anchor: "" },
   { label: "Serviços", anchor: "#servicos" },
   { label: "Barbeiros", anchor: "#barbeiros" },
@@ -37,8 +50,15 @@ const NAV_ANCHORS: NavItem[] = [
   { label: "Contato", anchor: "#contato" },
 ];
 
+const SAAS_NAV: Array<{ label: string; href: string }> = [
+  { label: "Início", href: "/" },
+  { label: "Recursos", href: "/#recursos" },
+  { label: "Planos", href: "/planos" },
+];
+
 export function Header() {
   const tenantBase = useTenantBase();
+  const isTenant = useIsTenant();
   const bookingHref = useBookingHref();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -50,7 +70,6 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -70,7 +89,7 @@ export function Header() {
       <div className="container-section flex h-16 items-center justify-between sm:h-20">
         {/* Logo */}
         <Link
-          href={tenantBase}
+          href={isTenant ? tenantBase : "/"}
           className="flex items-center gap-2 focus-ring rounded-sm"
           aria-label={`${SITE_CONFIG.name} — página inicial`}
         >
@@ -85,31 +104,52 @@ export function Header() {
           className="hidden items-center gap-8 md:flex"
           aria-label="Navegação principal"
         >
-          {NAV_ANCHORS.map((item) => (
-            <Link
-              key={item.anchor}
-              href={item.anchor ? `${tenantBase}${item.anchor}` : tenantBase}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-sm"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {isTenant
+            ? TENANT_NAV.map((item) => (
+                <Link
+                  key={item.anchor}
+                  href={item.anchor ? `${tenantBase}${item.anchor}` : tenantBase}
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-sm"
+                >
+                  {item.label}
+                </Link>
+              ))
+            : SAAS_NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-sm"
+                >
+                  {item.label}
+                </Link>
+              ))}
         </nav>
 
         {/* CTA + Mobile toggle */}
         <div className="flex items-center gap-2">
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href={bookingHref}>
-              <Calendar className="size-4" />
-              Agendar
-            </Link>
-          </Button>
-          <Button asChild size="default" className="sm:hidden">
-            <Link href={bookingHref}>
-              <Calendar className="size-4" />
-              Agendar
-            </Link>
-          </Button>
+          {isTenant ? (
+            <>
+              <Button asChild size="sm" className="hidden sm:inline-flex">
+                <Link href={bookingHref}>
+                  <Calendar className="size-4" />
+                  Agendar
+                </Link>
+              </Button>
+              <Button asChild size="default" className="sm:hidden">
+                <Link href={bookingHref}>
+                  <Calendar className="size-4" />
+                  Agendar
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href="/planos">
+                Conhecer planos
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          )}
           <button
             type="button"
             className="inline-flex size-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-secondary focus-ring md:hidden"
@@ -133,16 +173,36 @@ export function Header() {
             className="container-section flex flex-col py-4"
             aria-label="Navegação mobile"
           >
-            {NAV_ANCHORS.map((item) => (
+            {isTenant
+              ? TENANT_NAV.map((item) => (
+                  <Link
+                    key={item.anchor}
+                    href={item.anchor ? `${tenantBase}${item.anchor}` : tenantBase}
+                    onClick={() => setOpen(false)}
+                    className="py-3 text-base font-medium text-foreground/90 transition-colors hover:text-primary focus-ring rounded-sm"
+                  >
+                    {item.label}
+                  </Link>
+                ))
+              : SAAS_NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="py-3 text-base font-medium text-foreground/90 transition-colors hover:text-primary focus-ring rounded-sm"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+            {isTenant && (
               <Link
-                key={item.anchor}
-                href={item.anchor ? `${tenantBase}${item.anchor}` : tenantBase}
+                href={bookingHref}
                 onClick={() => setOpen(false)}
-                className="py-3 text-base font-medium text-foreground/90 transition-colors hover:text-primary focus-ring rounded-sm"
+                className="mt-2 py-3 text-base font-medium text-primary focus-ring rounded-sm"
               >
-                {item.label}
+                Agendar horário
               </Link>
-            ))}
+            )}
           </nav>
         </div>
       )}
@@ -150,7 +210,6 @@ export function Header() {
   );
 }
 
-/* Small brand mark — vertical barbershop pole in gold */
 function BrandMark() {
   return (
     <span

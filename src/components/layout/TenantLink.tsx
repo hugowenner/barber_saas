@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
 
-const EXCLUDED = new Set(["agendar", "admin", "saas-admin", "api", ""]);
+const EXCLUDED = new Set(["agendar", "admin", "saas-admin", "api", "planos", ""]);
 
 type LinkProps = ComponentPropsWithoutRef<typeof Link>;
 

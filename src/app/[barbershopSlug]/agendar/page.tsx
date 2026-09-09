@@ -4,6 +4,17 @@ import { getServices } from "@/lib/data/services";
 import { getBarbers } from "@/lib/data/barbers";
 import { BookingClient } from "@/app/agendar/BookingClient";
 import type { HourConfig } from "@/data/availability";
+import type { FooterShopData } from "@/types";
+
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "Segunda",
+  2: "Terça",
+  3: "Quarta",
+  4: "Quinta",
+  5: "Sexta",
+  6: "Sábado",
+  0: "Domingo",
+};
 
 function minToTime(min: number): string {
   return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
@@ -30,6 +41,26 @@ export default async function TenantAgendarPage({ params }: Props) {
     close: minToTime(h.closeMin),
   }));
 
+  const footerData: FooterShopData = {
+    name: shop.name,
+    tagline: shop.tagline ?? null,
+    phone: shop.phone ?? null,
+    whatsapp: shop.whatsapp ?? null,
+    instagram: shop.instagram ?? null,
+    street: shop.street ?? null,
+    number: shop.number ?? null,
+    district: shop.district ?? null,
+    city: shop.city ?? null,
+    state: shop.state ?? null,
+    mapsQuery: shop.mapsQuery ?? null,
+    hours: hours.map((h) => ({
+      weekday: h.weekday,
+      open: minToTime(h.openMin),
+      close: minToTime(h.closeMin),
+      label: WEEKDAY_LABELS[h.weekday] ?? `Dia ${h.weekday}`,
+    })),
+  };
+
   return (
     <BookingClient
       services={services}
@@ -43,6 +74,7 @@ export default async function TenantAgendarPage({ params }: Props) {
       }}
       barbershopSlug={shop.slug}
       backHref={`/${barbershopSlug}`}
+      footerData={footerData}
     />
   );
 }

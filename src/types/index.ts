@@ -74,6 +74,22 @@ export interface SiteConfig {
   hours: BusinessHours[];
 }
 
+/** Tenant data passed to Footer when rendering inside a tenant route. */
+export interface FooterShopData {
+  name: string;
+  tagline: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  street: string | null;
+  number: string | null;
+  district: string | null;
+  city: string | null;
+  state: string | null;
+  mapsQuery: string | null;
+  hours: Array<{ weekday: number; open: string; close: string; label: string }>;
+}
+
 /* ---------- Booking flow types ---------- */
 
 export type BookingStep =
