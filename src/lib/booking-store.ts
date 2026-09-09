@@ -4,16 +4,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Barber, BookingState, Service } from "@/types";
 
-/**
- * Booking flow store.
- *
- * Single source of truth for the /agendar multi-step flow.
- * Persisted to localStorage so a refresh mid-flow doesn't lose progress.
- *
- * The store is intentionally decoupled from any backend. The confirmation
- * step is the seam where, in the future, an API route will persist the
- * booking to PostgreSQL.
- */
+interface BookingStoreState extends BookingState {
+  /** Slug of the barbershop this booking belongs to. Used to detect tenant switches and reset stale state. */
+  barbershopSlug: string;
+}
 
 interface BookingActions {
   setService: (service: Service | null) => void;
@@ -23,13 +17,15 @@ interface BookingActions {
   setTime: (time: string | null) => void;
   setCustomerName: (name: string) => void;
   setCustomerPhone: (phone: string) => void;
+  setBarbershopSlug: (slug: string) => void;
   confirm: () => void;
   reset: () => void;
 }
 
-export type BookingStore = BookingState & BookingActions;
+export type BookingStore = BookingStoreState & BookingActions;
 
-const INITIAL: BookingState = {
+const INITIAL: BookingStoreState = {
+  barbershopSlug: "",
   service: null,
   barber: null,
   anyBarber: false,
@@ -47,20 +43,19 @@ export const useBookingStore = create<BookingStore>()(
       setService: (service) => set({ service }),
       setBarber: (barber) => set({ barber }),
       setAnyBarber: (anyBarber) =>
-        // Picking "any barber" clears a previously selected barber.
         set({ anyBarber, barber: anyBarber ? null : get().barber }),
-      setDate: (date) => set({ date, time: null }), // reset time when date changes
+      setDate: (date) => set({ date, time: null }),
       setTime: (time) => set({ time }),
       setCustomerName: (customerName) => set({ customerName }),
       setCustomerPhone: (customerPhone) => set({ customerPhone }),
+      setBarbershopSlug: (barbershopSlug) => set({ barbershopSlug }),
       confirm: () => set({ confirmed: true }),
       reset: () => set(INITIAL),
     }),
     {
-      name: "barber-house-booking",
-      // Only persist the data, not the actions (Zustand handles this automatically
-      // since functions don't survive JSON serialization, but be explicit).
+      name: "booking",
       partialize: (s) => ({
+        barbershopSlug: s.barbershopSlug,
         service: s.service,
         barber: s.barber,
         anyBarber: s.anyBarber,

@@ -2,7 +2,11 @@ import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function FinalCta() {
+interface FinalCtaProps {
+  bookingHref?: string;
+}
+
+export function FinalCta({ bookingHref = "/agendar" }: FinalCtaProps = {}) {
   return (
     <section
       className="relative overflow-hidden border-b border-border py-24 sm:py-32"
@@ -27,7 +31,7 @@ export function FinalCta() {
           complicação.
         </p>
         <Button asChild size="lg" className="mt-9 h-12 px-8 text-base">
-          <Link href="/agendar">
+          <Link href={bookingHref}>
             <Calendar className="size-4" />
             Agendar horário
           </Link>

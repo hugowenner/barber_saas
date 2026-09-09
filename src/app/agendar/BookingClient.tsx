@@ -32,6 +32,8 @@ interface BookingClientProps {
   barbers: Barber[];
   businessHours: HourConfig[];
   shop: ShopInfo;
+  barbershopSlug: string;
+  backHref?: string;
 }
 
 const STEP_ORDER: BookingStep[] = [
@@ -43,7 +45,14 @@ const STEP_ORDER: BookingStep[] = [
   "confirmation",
 ];
 
-export function BookingClient({ services, barbers, businessHours, shop }: BookingClientProps) {
+export function BookingClient({
+  services,
+  barbers,
+  businessHours,
+  shop,
+  barbershopSlug,
+  backHref = "/",
+}: BookingClientProps) {
   const booking = useBookingStore();
   const isClient = useIsClient();
   const { toast } = useToast();
@@ -51,6 +60,18 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
   const [userStep, setUserStep] = useState<BookingStep>("service");
   const [bookedIntervals, setBookedIntervals] = useState<BookedInterval[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
+  // Reset booking state if the user navigated from a different tenant
+  useEffect(() => {
+    if (!isClient) return;
+    const storedSlug = booking.barbershopSlug;
+    if (storedSlug && storedSlug !== barbershopSlug) {
+      booking.reset();
+    }
+    if (booking.barbershopSlug !== barbershopSlug) {
+      booking.setBarbershopSlug(barbershopSlug);
+    }
+  }, [isClient]); // intentional: run only once on mount
 
   const step: BookingStep =
     isClient && booking.confirmed ? "confirmation" : userStep;
@@ -61,6 +82,7 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
     let cancelled = false;
     setIsLoadingSlots(true);
     getBookedSlots(
+      barbershopSlug,
       booking.date,
       booking.anyBarber ? null : (booking.barber?.id ?? null),
       booking.anyBarber,
@@ -71,7 +93,7 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
       }
     });
     return () => { cancelled = true; };
-  }, [booking.date, booking.barber?.id, booking.anyBarber]);
+  }, [barbershopSlug, booking.date, booking.barber?.id, booking.anyBarber]);
 
   const slots = useMemo(() => {
     if (!booking.date) return [];
@@ -125,6 +147,7 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
     if (!booking.service || !booking.date || !booking.time) return;
     startTransition(async () => {
       const result = await createPublicBooking({
+        barbershopSlug,
         serviceId: booking.service!.id,
         barberId: booking.anyBarber ? null : (booking.barber?.id ?? null),
         anyBarber: booking.anyBarber,
@@ -157,7 +180,7 @@ export function BookingClient({ services, barbers, businessHours, shop }: Bookin
     <SiteShell>
       <div className="container-section py-8 sm:py-12">
         <Link
-          href="/"
+          href={backHref}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-sm"
         >
           <ArrowLeft className="size-4" />

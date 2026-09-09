@@ -1,8 +1,15 @@
 import { SectionHeading } from "./SectionHeading";
 import { TestimonialCard } from "./TestimonialCard";
 import { TESTIMONIALS } from "@/data/testimonials";
+import type { Testimonial } from "@/types";
 
-export function TestimonialsSection() {
+interface TestimonialsSectionProps {
+  testimonials?: Testimonial[];
+}
+
+export function TestimonialsSection({ testimonials }: TestimonialsSectionProps = {}) {
+  const items = testimonials && testimonials.length > 0 ? testimonials : TESTIMONIALS;
+
   return (
     <section
       id="avaliacoes"
@@ -21,7 +28,7 @@ export function TestimonialsSection() {
           id="testimonials-heading"
           className="mt-12 grid gap-4 md:grid-cols-3"
         >
-          {TESTIMONIALS.map((t) => (
+          {items.map((t) => (
             <li key={t.id}>
               <TestimonialCard testimonial={t} />
             </li>

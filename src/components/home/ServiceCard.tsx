@@ -30,7 +30,7 @@ export function ServiceCard({
         </span>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">{service.description}</p>
-      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-4 flex items-center gap-2 text-xs text-foreground/65">
         <Clock className="size-3.5" />
         <span>{formatDuration(service.durationMin)}</span>
       </div>

@@ -6,9 +6,10 @@ import type { Service } from "@/types";
 
 interface Props {
   services: Service[];
+  bookingHref?: string;
 }
 
-export function ServicesSection({ services }: Props) {
+export function ServicesSection({ services, bookingHref = "/agendar" }: Props) {
   return (
     <section
       id="servicos"
@@ -24,7 +25,7 @@ export function ServicesSection({ services }: Props) {
             description="Cada serviço é uma experiência. Do corte clássico ao acabamento de barba, tudo feito com técnica e cuidado."
           />
           <Link
-            href="/agendar"
+            href={bookingHref}
             className="group inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-foreground focus-ring rounded-sm"
           >
             Agendar agora

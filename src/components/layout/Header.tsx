@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/data/business";
+
+const EXCLUDED_SEGMENTS = new Set(["agendar", "admin", "saas-admin", "api", ""]);
+
+function useBookingHref() {
+  const pathname = usePathname();
+  const firstSegment = pathname.split("/")[1] ?? "";
+  return EXCLUDED_SEGMENTS.has(firstSegment)
+    ? "/agendar"
+    : `/${firstSegment}/agendar`;
+}
 
 interface NavItem {
   label: string;
@@ -21,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function Header() {
+  const bookingHref = useBookingHref();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -80,13 +92,13 @@ export function Header() {
         {/* CTA + Mobile toggle */}
         <div className="flex items-center gap-2">
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/agendar">
+            <Link href={bookingHref}>
               <Calendar className="size-4" />
               Agendar
             </Link>
           </Button>
           <Button asChild size="default" className="sm:hidden">
-            <Link href="/agendar">
+            <Link href={bookingHref}>
               <Calendar className="size-4" />
               Agendar
             </Link>

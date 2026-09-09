@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Instagram, MapPin, Phone, Clock } from "lucide-react";
 import { SITE_CONFIG } from "@/data/business";
 import { buildMapsLink, buildWhatsAppLink } from "@/lib/format";
+import { BookingLink } from "./BookingLink";
 
 export function Footer() {
   const whatsappLink = buildWhatsAppLink(
@@ -114,9 +115,9 @@ export function Footer() {
             <Link href="/" className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Início
             </Link>
-            <Link href="/agendar" className="hover:text-foreground transition-colors focus-ring rounded-sm">
+            <BookingLink className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Agendar
-            </Link>
+            </BookingLink>
             <Link href="/#servicos" className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Serviços
             </Link>

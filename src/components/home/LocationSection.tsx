@@ -6,13 +6,48 @@ import {
   buildMapsLink,
   buildWhatsAppLink,
 } from "@/lib/format";
+import type { BusinessHours } from "@/types";
 
-export function LocationSection() {
-  const { address, hours, phone, whatsapp } = SITE_CONFIG;
-  const mapsLink = buildMapsLink(SITE_CONFIG.mapsQuery);
+interface ShopLocation {
+  name: string;
+  phone: string | null;
+  whatsapp: string | null;
+  street: string | null;
+  number: string | null;
+  district: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  mapsQuery: string | null;
+  hours?: BusinessHours[];
+}
+
+interface LocationSectionProps {
+  shop?: ShopLocation;
+}
+
+export function LocationSection({ shop }: LocationSectionProps = {}) {
+  const name = shop?.name ?? SITE_CONFIG.name;
+  const phone = shop?.phone ?? SITE_CONFIG.phone;
+  const whatsapp = shop?.whatsapp ?? SITE_CONFIG.whatsapp;
+  const mapsQuery = shop?.mapsQuery ?? SITE_CONFIG.mapsQuery;
+  const hours = shop?.hours ?? SITE_CONFIG.hours;
+
+  const address = shop
+    ? {
+        street: shop.street ?? "",
+        number: shop.number ?? "",
+        district: shop.district ?? "",
+        city: shop.city ?? "",
+        state: shop.state ?? "",
+        zip: shop.zip ?? "",
+      }
+    : SITE_CONFIG.address;
+
+  const mapsLink = buildMapsLink(mapsQuery);
   const whatsappLink = buildWhatsAppLink(
     whatsapp,
-    `Olá! Gostaria de agendar um horário na ${SITE_CONFIG.name}.`,
+    `Olá! Gostaria de agendar um horário na ${name}.`,
   );
 
   return (
@@ -33,9 +68,9 @@ export function LocationSection() {
           {/* Map */}
           <div className="relative min-h-[320px] overflow-hidden rounded-lg border border-border bg-secondary lg:min-h-[440px]">
             <iframe
-              title={`Mapa — ${SITE_CONFIG.name}`}
+              title={`Mapa — ${name}`}
               src={`https://www.google.com/maps?q=${encodeURIComponent(
-                SITE_CONFIG.mapsQuery,
+                mapsQuery,
               )}&output=embed`}
               className="absolute inset-0 h-full w-full"
               loading="eager"

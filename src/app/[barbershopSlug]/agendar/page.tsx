@@ -1,17 +1,22 @@
 import { notFound } from "next/navigation";
-import { getBarbershop, getBusinessHours } from "@/lib/data/barbershop";
+import { getBarbershopBySlug, getBusinessHours } from "@/lib/data/barbershop";
 import { getServices } from "@/lib/data/services";
 import { getBarbers } from "@/lib/data/barbers";
-import { BookingClient } from "./BookingClient";
+import { BookingClient } from "@/app/agendar/BookingClient";
 import type { HourConfig } from "@/data/availability";
 
 function minToTime(min: number): string {
   return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 }
 
-export default async function AgendarPage() {
-  const shop = await getBarbershop();
-  if (!shop) notFound();
+interface Props {
+  params: Promise<{ barbershopSlug: string }>;
+}
+
+export default async function TenantAgendarPage({ params }: Props) {
+  const { barbershopSlug } = await params;
+  const shop = await getBarbershopBySlug(barbershopSlug);
+  if (!shop || !shop.isActive) notFound();
 
   const [services, barbers, hours] = await Promise.all([
     getServices(shop.id),
@@ -37,7 +42,7 @@ export default async function AgendarPage() {
         timezone: shop.timezone ?? "America/Sao_Paulo",
       }}
       barbershopSlug={shop.slug}
-      backHref="/"
+      backHref={`/${barbershopSlug}`}
     />
   );
 }

@@ -31,7 +31,7 @@ export function BarberCard({
 
   const body = (
     <>
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary">
+      <div className="relative aspect-square w-full overflow-hidden bg-secondary">
         {barber.imageUrl ? (
           <Image
             src={barber.imageUrl}
@@ -53,7 +53,7 @@ export function BarberCard({
         <p className="text-xs uppercase tracking-[0.18em] text-primary">
           {barber.specialty}
         </p>
-        <p className="text-sm text-muted-foreground">{barber.bio}</p>
+        <p className="text-sm text-foreground/75">{barber.bio}</p>
       </div>
     </>
   );

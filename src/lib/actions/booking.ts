@@ -1,16 +1,17 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getBarbershop } from "@/lib/data/barbershop";
+import { getBarbershopBySlug } from "@/lib/data/barbershop";
 import { zonedToUtc, weekdayInTZ, minutesInTZ, utcDayRange } from "@/lib/tz";
 import { Prisma } from "@prisma/client";
 
 export async function getBookedSlots(
+  barbershopSlug: string,
   date: string,
   barberId: string | null,
   anyBarber: boolean,
 ): Promise<{ startAt: string; endAt: string }[]> {
-  const shop = await getBarbershop();
+  const shop = await getBarbershopBySlug(barbershopSlug);
   if (!shop) return [];
 
   const tz = shop.timezone ?? "America/Sao_Paulo";
@@ -42,6 +43,7 @@ export async function getBookedSlots(
 }
 
 export async function createPublicBooking(data: {
+  barbershopSlug: string;
   serviceId: string;
   barberId: string | null;
   anyBarber: boolean;
@@ -58,9 +60,9 @@ export async function createPublicBooking(data: {
 
     const phone = data.customerPhone.replace(/\D/g, "");
 
-    // barbershopId is always derived from the server — never trusted from client
-    const shop = await getBarbershop();
-    if (!shop) return { ok: false, error: "Barbearia não encontrada." };
+    // barbershopId is always derived from the slug server-side — never trusted from client
+    const shop = await getBarbershopBySlug(data.barbershopSlug);
+    if (!shop || !shop.isActive) return { ok: false, error: "Barbearia não encontrada." };
     const barbershopId = shop.id;
 
     // Validate service belongs to this barbershop
@@ -98,8 +100,6 @@ export async function createPublicBooking(data: {
     }
 
     // Conflict check + appointment creation inside a single SERIALIZABLE transaction.
-    // PostgreSQL READ COMMITTED (default) allows two concurrent transactions to both
-    // pass the conflict check before either commits — SERIALIZABLE prevents this.
     const result = await db.$transaction(
       async (tx) => {
       const conflict = await tx.appointment.findFirst({

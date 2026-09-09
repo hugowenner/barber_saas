@@ -136,13 +136,13 @@ async function main() {
 
   console.log("\nT1.1 — serviceId de outro tenant:");
   if (serviceB) {
-    const r = await createPublicBooking({ serviceId: serviceB.id, barberId: barberA.id, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T1.1", customerPhone: testPhones[0] });
+    const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceB.id, barberId: barberA.id, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T1.1", customerPhone: testPhones[0] });
     assert(!r.ok, "serviceId cross-tenant rejeitado", r.error);
   } else { console.log("  (shop B sem service — pulado)"); }
 
   console.log("\nT1.2 — barberId de outro tenant:");
   if (barberB) {
-    const r = await createPublicBooking({ serviceId: serviceA.id, barberId: barberB.id, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T1.2", customerPhone: testPhones[1] });
+    const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberB.id, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T1.2", customerPhone: testPhones[1] });
     assert(!r.ok, "barberId cross-tenant rejeitado", r.error);
   } else { console.log("  (shop B sem barber — pulado)"); }
 
@@ -171,14 +171,14 @@ async function main() {
   {
     const beforeOpenMin = hourDay.openMin - 60;
     const testTime = beforeOpenMin >= 0 ? minToTime(beforeOpenMin) : minToTime(closeMin + 60);
-    const r = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate, time: testTime, customerName: "E2E T2.1", customerPhone: testPhones[2] });
+    const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate, time: testTime, customerName: "E2E T2.1", customerPhone: testPhones[2] });
     assert(!r.ok, `Booking fora do horário (${testTime}) rejeitado`, r.error);
   }
 
   console.log("\nT2.2 — booking em dia fechado:");
   if (closedWeekday !== null) {
     const closedDate = futureDateForWeekday(closedWeekday, 400);
-    const r = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: closedDate, time: openTime, customerName: "E2E T2.2", customerPhone: testPhones[3] });
+    const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: closedDate, time: openTime, customerName: "E2E T2.2", customerPhone: testPhones[3] });
     assert(!r.ok, `Booking em dia fechado (weekday=${closedWeekday}) rejeitado`, r.error);
   } else { console.log("  (aberta todos os dias — pulado)"); }
 
@@ -186,7 +186,7 @@ async function main() {
   {
     const badStartMin = closeMin - serviceA.durationMin + 1;
     if (badStartMin >= hourDay.openMin && badStartMin < closeMin) {
-      const r = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate, time: minToTime(badStartMin), customerName: "E2E T2.3", customerPhone: testPhones[4] });
+      const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate, time: minToTime(badStartMin), customerName: "E2E T2.3", customerPhone: testPhones[4] });
       assert(!r.ok, `Booking que ultrapassa fechamento rejeitado`, r.error);
     } else { console.log("  (impossível calcular — pulado)"); }
   }
@@ -194,7 +194,7 @@ async function main() {
   console.log("\nT2.4 — booking válido: UTC correto, status=PENDING, priceCents do DB:");
   let validApptId: string | null = null;
   {
-    const r = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T2.4", customerPhone: testPhones[5] });
+    const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T2.4", customerPhone: testPhones[5] });
     assert(r.ok, "Booking válido aceito", r.error);
     if (r.ok) {
       validApptId = await trackCreated(testPhones[5], shopA.id);
@@ -226,9 +226,9 @@ async function main() {
 
   console.log("\nT3.1 — dois bookings no mesmo horário/barbeiro:");
   if (canUseSlot2) {
-    const r1 = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate2, time: slot2Time, customerName: "E2E T3.1a", customerPhone: testPhones[6] });
+    const r1 = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate2, time: slot2Time, customerName: "E2E T3.1a", customerPhone: testPhones[6] });
     await trackCreated(testPhones[6], shopA.id);
-    const r2 = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate2, time: slot2Time, customerName: "E2E T3.1b", customerPhone: testPhones[7] });
+    const r2 = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate2, time: slot2Time, customerName: "E2E T3.1b", customerPhone: testPhones[7] });
     await trackCreated(testPhones[7], shopA.id);
     assert(r1.ok, "Primeiro booking aceito", r1.error);
     assert(!r2.ok, "Segundo booking no mesmo horário/barbeiro rejeitado", r2.error);
@@ -238,7 +238,7 @@ async function main() {
   if (canUseSlot2) {
     const overlapMin = slot2StartMin + Math.floor(serviceA.durationMin / 2);
     if (overlapMin + serviceA.durationMin <= closeMin) {
-      const r = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate2, time: minToTime(overlapMin), customerName: "E2E T3.2", customerPhone: testPhones[8] });
+      const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate2, time: minToTime(overlapMin), customerName: "E2E T3.2", customerPhone: testPhones[8] });
       await trackCreated(testPhones[8], shopA.id);
       assert(!r.ok, `Sobreposição parcial (${minToTime(overlapMin)}) rejeitada`, r.error);
     } else { console.log("  (sobreposição não calculável — pulado)"); }
@@ -247,7 +247,7 @@ async function main() {
   // T3.3 — CORREÇÃO 2: rebook após CANCELLED deve funcionar (@@unique removido)
   console.log("\nT3.3 — rebook após CANCELLED (CORREÇÃO 2 — @@unique removida):");
   {
-    const r1 = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate3, time: openTime, customerName: "E2E T3.3a", customerPhone: testPhones[9] });
+    const r1 = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate3, time: openTime, customerName: "E2E T3.3a", customerPhone: testPhones[9] });
     const appt3a = await trackCreated(testPhones[9], shopA.id);
     if (r1.ok && appt3a) {
       await db.appointment.update({ where: { id: appt3a }, data: { status: "CANCELLED" } });
@@ -258,7 +258,7 @@ async function main() {
       assert(cancelled?.customerName === "E2E T3.3a", "customerName preservado no histórico");
 
       // Now rebook same slot — should succeed after @@unique removal
-      const r2 = await createPublicBooking({ serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate3, time: openTime, customerName: "E2E T3.3b", customerPhone: testPhones[10] });
+      const r2 = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: barberA.id, anyBarber: false, date: testDate3, time: openTime, customerName: "E2E T3.3b", customerPhone: testPhones[10] });
       await trackCreated(testPhones[10], shopA.id);
       assert(r2.ok, "Rebook no mesmo (barbeiro, horário) após CANCELLED aceito", r2.error);
 
@@ -278,7 +278,7 @@ async function main() {
   console.log("\nT3.4 — anyBarber conflict over-blocks [LIMITAÇÃO documentada]:");
   {
     const anyDate = futureDateForWeekday(hourDay.weekday, 460);
-    const r1 = await createPublicBooking({ serviceId: serviceA.id, barberId: null, anyBarber: true, date: anyDate, time: openTime, customerName: "E2E T3.4a", customerPhone: testPhones[11] });
+    const r1 = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: null, anyBarber: true, date: anyDate, time: openTime, customerName: "E2E T3.4a", customerPhone: testPhones[11] });
     await trackCreated(testPhones[11], shopA.id);
     if (r1.ok) {
       const startUtc = zonedToUtc(`${anyDate}T${openTime}:00`, tzA);
@@ -336,7 +336,7 @@ async function main() {
   // T5.1 — CORREÇÃO 3: anyBarber=false + barberId=null → rejeitado
   console.log("\nT5.1 — CORREÇÃO 3: anyBarber=false + barberId=null rejeitado:");
   {
-    const r = await createPublicBooking({ serviceId: serviceA.id, barberId: null, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T5.1", customerPhone: testPhones[12] });
+    const r = await createPublicBooking({ barbershopSlug: shopA.slug, serviceId: serviceA.id, barberId: null, anyBarber: false, date: testDate, time: openTime, customerName: "E2E T5.1", customerPhone: testPhones[12] });
     assert(!r.ok, "anyBarber=false + barberId=null rejeitado", r.error);
     assert(r.error === "Selecione um barbeiro.", `Mensagem correta: "${r.error}"`);
     // Verify no orphan appointment was created
@@ -349,7 +349,7 @@ async function main() {
   {
     // validApptId was created at testDate + openTime for barberA (T2.4)
     if (validApptId) {
-      const intervals = await getBookedSlots(testDate, barberA.id, false);
+      const intervals = await getBookedSlots(shopA.slug, testDate, barberA.id, false);
       assert(Array.isArray(intervals), "getBookedSlots retorna array");
       const apptInSlots = intervals.some((i) => {
         const apptUtc = zonedToUtc(`${testDate}T${openTime}:00`, tzA);
@@ -363,7 +363,7 @@ async function main() {
   console.log("\nT5.3 — CORREÇÃO 1: CANCELLED não aparece em getBookedSlots:");
   {
     // testDate3 + openTime has a CANCELLED (from T3.3a) and a PENDING (T3.3b)
-    const intervals = await getBookedSlots(testDate3, barberA.id, false);
+    const intervals = await getBookedSlots(shopA.slug, testDate3, barberA.id, false);
     const slotUtc = zonedToUtc(`${testDate3}T${openTime}:00`, tzA);
     const matching = intervals.filter((i) => new Date(i.startAt).getTime() === slotUtc.getTime());
     // Should have exactly 1 entry (the PENDING one), not 2 (one CANCELLED + one PENDING)
@@ -377,7 +377,7 @@ async function main() {
   console.log("\nT5.4 — CORREÇÃO 1 + LIM-03 fix: getTimeSlots timezone-safe (TZ=UTC → slot ocupado):");
   {
     if (validApptId) {
-      const intervals = await getBookedSlots(testDate, barberA.id, false);
+      const intervals = await getBookedSlots(shopA.slug, testDate, barberA.id, false);
       const bh = hoursA.map((h) => ({ weekday: h.weekday, open: minToTime(h.openMin), close: minToTime(h.closeMin) }));
 
       // Executa com timezone explícito do shop (determinístico independente de process.env.TZ)
@@ -400,7 +400,7 @@ async function main() {
   // T5.5 — CORREÇÃO 1: barberId de outro tenant em getBookedSlots → array vazio (sem probe cross-tenant)
   console.log("\nT5.5 — CORREÇÃO 1: getBookedSlots com barberId inválido → vazio:");
   if (barberB) {
-    const intervals = await getBookedSlots(testDate, barberB.id, false);
+    const intervals = await getBookedSlots(shopA.slug, testDate, barberB.id, false);
     assert(Array.isArray(intervals) && intervals.length === 0, "barberId de outro tenant retorna [] (sem dados cross-tenant)");
   } else { console.log("  (shop B sem barber — pulado)"); }
 
