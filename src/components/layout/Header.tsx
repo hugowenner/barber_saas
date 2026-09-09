@@ -10,6 +10,12 @@ import { SITE_CONFIG } from "@/data/business";
 
 const EXCLUDED_SEGMENTS = new Set(["agendar", "admin", "saas-admin", "api", ""]);
 
+function useTenantBase() {
+  const pathname = usePathname();
+  const firstSegment = pathname.split("/")[1] ?? "";
+  return EXCLUDED_SEGMENTS.has(firstSegment) ? "/" : `/${firstSegment}`;
+}
+
 function useBookingHref() {
   const pathname = usePathname();
   const firstSegment = pathname.split("/")[1] ?? "";
@@ -20,18 +26,19 @@ function useBookingHref() {
 
 interface NavItem {
   label: string;
-  href: string;
+  anchor: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Início", href: "/" },
-  { label: "Serviços", href: "/#servicos" },
-  { label: "Barbeiros", href: "/#barbeiros" },
-  { label: "A barbearia", href: "/#ambiente" },
-  { label: "Contato", href: "/#contato" },
+const NAV_ANCHORS: NavItem[] = [
+  { label: "Início", anchor: "" },
+  { label: "Serviços", anchor: "#servicos" },
+  { label: "Barbeiros", anchor: "#barbeiros" },
+  { label: "A barbearia", anchor: "#ambiente" },
+  { label: "Contato", anchor: "#contato" },
 ];
 
 export function Header() {
+  const tenantBase = useTenantBase();
   const bookingHref = useBookingHref();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -63,7 +70,7 @@ export function Header() {
       <div className="container-section flex h-16 items-center justify-between sm:h-20">
         {/* Logo */}
         <Link
-          href="/"
+          href={tenantBase}
           className="flex items-center gap-2 focus-ring rounded-sm"
           aria-label={`${SITE_CONFIG.name} — página inicial`}
         >
@@ -78,10 +85,10 @@ export function Header() {
           className="hidden items-center gap-8 md:flex"
           aria-label="Navegação principal"
         >
-          {NAV_ITEMS.map((item) => (
+          {NAV_ANCHORS.map((item) => (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.anchor}
+              href={item.anchor ? `${tenantBase}${item.anchor}` : tenantBase}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-ring rounded-sm"
             >
               {item.label}
@@ -126,10 +133,10 @@ export function Header() {
             className="container-section flex flex-col py-4"
             aria-label="Navegação mobile"
           >
-            {NAV_ITEMS.map((item) => (
+            {NAV_ANCHORS.map((item) => (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.anchor}
+                href={item.anchor ? `${tenantBase}${item.anchor}` : tenantBase}
                 onClick={() => setOpen(false)}
                 className="py-3 text-base font-medium text-foreground/90 transition-colors hover:text-primary focus-ring rounded-sm"
               >

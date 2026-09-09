@@ -3,6 +3,7 @@ import { Instagram, MapPin, Phone, Clock } from "lucide-react";
 import { SITE_CONFIG } from "@/data/business";
 import { buildMapsLink, buildWhatsAppLink } from "@/lib/format";
 import { BookingLink } from "./BookingLink";
+import { TenantLink } from "./TenantLink";
 
 export function Footer() {
   const whatsappLink = buildWhatsAppLink(
@@ -112,18 +113,18 @@ export function Footer() {
             reservados.
           </p>
           <nav aria-label="Navegação do rodapé" className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/" className="hover:text-foreground transition-colors focus-ring rounded-sm">
+            <TenantLink className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Início
-            </Link>
+            </TenantLink>
             <BookingLink className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Agendar
             </BookingLink>
-            <Link href="/#servicos" className="hover:text-foreground transition-colors focus-ring rounded-sm">
+            <TenantLink anchor="#servicos" className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Serviços
-            </Link>
-            <Link href="/#contato" className="hover:text-foreground transition-colors focus-ring rounded-sm">
+            </TenantLink>
+            <TenantLink anchor="#contato" className="hover:text-foreground transition-colors focus-ring rounded-sm">
               Contato
-            </Link>
+            </TenantLink>
           </nav>
         </div>
       </div>
