@@ -1,5 +1,6 @@
 import { PrismaClient, AppointmentStatus, BarbershopPlan } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { zonedToUtc } from "../src/lib/tz";
 
 const db = new PrismaClient();
 
@@ -244,12 +245,18 @@ async function main() {
     )
   );
 
-  // Appointments — anchored to today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Appointments — anchored to today in the barbershop's timezone.
+  // Uses zonedToUtc to avoid setHours() local-TZ dependency on Vercel (UTC).
+  const shopTz = "America/Sao_Paulo";
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: shopTz }); // "YYYY-MM-DD" in shop TZ
 
   function apptDate(dayOffset: number, startMin: number): Date {
-    return new Date(today.getTime() + dayOffset * 86400000 + startMin * 60000);
+    const [y, m, d] = todayStr.split("-").map(Number);
+    const targetDate = new Date(Date.UTC(y, m - 1, d + dayOffset));
+    const dateStr = targetDate.toISOString().slice(0, 10);
+    const hh = String(Math.floor(startMin / 60)).padStart(2, "0");
+    const mm = String(startMin % 60).padStart(2, "0");
+    return zonedToUtc(`${dateStr}T${hh}:${mm}:00`, shopTz);
   }
 
   const apptTemplates: Array<{
@@ -405,7 +412,16 @@ async function main() {
   );
 
   await db.appointment.deleteMany({ where: { barbershopId: shopPro.id } });
-  const alphaToday = new Date(); alphaToday.setHours(0, 0, 0, 0);
+  const alphaTz = "America/Sao_Paulo";
+  const alphaTodayStr = new Date().toLocaleDateString("en-CA", { timeZone: alphaTz });
+  function alphaDate(dayOffset: number, startMin: number): Date {
+    const [y, m, d] = alphaTodayStr.split("-").map(Number);
+    const targetDate = new Date(Date.UTC(y, m - 1, d + dayOffset));
+    const dateStr = targetDate.toISOString().slice(0, 10);
+    const hh = String(Math.floor(startMin / 60)).padStart(2, "0");
+    const mm = String(startMin % 60).padStart(2, "0");
+    return zonedToUtc(`${dateStr}T${hh}:${mm}:00`, alphaTz);
+  }
   const alphaAppts = [
     { dayOffset: 0, startMin: 10 * 60, dur: 35, clientIdx: 0, barber: bAlpha1, svc: svcAlphaCorte, status: "CONFIRMED" as const },
     { dayOffset: 0, startMin: 11 * 60, dur: 60, clientIdx: 1, barber: bAlpha2, svc: svcAlphaCombo, status: "PENDING" as const },
@@ -414,7 +430,7 @@ async function main() {
   ];
   for (const t of alphaAppts) {
     const cli = alphaClients[t.clientIdx];
-    const start = new Date(alphaToday.getTime() + t.dayOffset * 86400000 + t.startMin * 60000);
+    const start = alphaDate(t.dayOffset, t.startMin);
     const end = new Date(start.getTime() + t.dur * 60000);
     await db.appointment.create({
       data: { barbershopId: shopPro.id, serviceId: t.svc.id, barberId: t.barber.id, clientId: cli.id, anyBarber: false, startAt: start, endAt: end, customerName: cli.name, customerPhone: cli.phone, status: t.status, priceCents: t.svc.priceCents },
@@ -480,7 +496,16 @@ async function main() {
   );
 
   await db.appointment.deleteMany({ where: { barbershopId: shopPremium.id } });
-  const gentToday = new Date(); gentToday.setHours(0, 0, 0, 0);
+  const gentTz = "America/Sao_Paulo";
+  const gentTodayStr = new Date().toLocaleDateString("en-CA", { timeZone: gentTz });
+  function gentDate(dayOffset: number, startMin: number): Date {
+    const [y, m, d] = gentTodayStr.split("-").map(Number);
+    const targetDate = new Date(Date.UTC(y, m - 1, d + dayOffset));
+    const dateStr = targetDate.toISOString().slice(0, 10);
+    const hh = String(Math.floor(startMin / 60)).padStart(2, "0");
+    const mm = String(startMin % 60).padStart(2, "0");
+    return zonedToUtc(`${dateStr}T${hh}:${mm}:00`, gentTz);
+  }
   const gentAppts = [
     { dayOffset: 0, startMin: 9 * 60, dur: 90, clientIdx: 0, barber: bGent1, svc: svcGentExperience, status: "CONFIRMED" as const },
     { dayOffset: 0, startMin: 11 * 60, dur: 40, clientIdx: 2, barber: bGent2, svc: svcGentGrooming, status: "PENDING" as const },
@@ -489,7 +514,7 @@ async function main() {
   ];
   for (const t of gentAppts) {
     const cli = gentClients[t.clientIdx];
-    const start = new Date(gentToday.getTime() + t.dayOffset * 86400000 + t.startMin * 60000);
+    const start = gentDate(t.dayOffset, t.startMin);
     const end = new Date(start.getTime() + t.dur * 60000);
     await db.appointment.create({
       data: { barbershopId: shopPremium.id, serviceId: t.svc.id, barberId: t.barber.id, clientId: cli.id, anyBarber: false, startAt: start, endAt: end, customerName: cli.name, customerPhone: cli.phone, status: t.status, priceCents: t.svc.priceCents },

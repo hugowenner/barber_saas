@@ -97,8 +97,11 @@ export async function createPublicBooking(data: {
       return { ok: false, error: "Horário fora do funcionamento da barbearia." };
     }
 
-    // Conflict check + appointment creation inside a single transaction
-    const result = await db.$transaction(async (tx) => {
+    // Conflict check + appointment creation inside a single SERIALIZABLE transaction.
+    // PostgreSQL READ COMMITTED (default) allows two concurrent transactions to both
+    // pass the conflict check before either commits — SERIALIZABLE prevents this.
+    const result = await db.$transaction(
+      async (tx) => {
       const conflict = await tx.appointment.findFirst({
         where: {
           barbershopId,
@@ -144,13 +147,18 @@ export async function createPublicBooking(data: {
       });
 
       return { ok: true as const };
-    });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
 
     return result;
   } catch (e) {
-    // P2002 = unique constraint violation — two concurrent requests for the same barber+startAt
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return { ok: false, error: "Horário não disponível. Tente outro horário." };
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      // P2002 = unique constraint violation
+      // P2034 = serialization failure (PostgreSQL SERIALIZABLE — retry-safe)
+      if (e.code === "P2002" || e.code === "P2034") {
+        return { ok: false, error: "Horário não disponível. Tente outro horário." };
+      }
     }
     console.error("[createPublicBooking]", e);
     return { ok: false, error: "Erro ao criar agendamento. Tente novamente." };

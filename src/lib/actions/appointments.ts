@@ -27,7 +27,8 @@ export async function assignAppointmentBarber(
     if (!session?.barbershopId) return { ok: false, error: "Não autorizado." };
     const barbershopId = session.barbershopId;
 
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(
+      async (tx) => {
       // Appointment must belong to this tenant
       const appt = await tx.appointment.findFirst({
         where: { id: appointmentId, barbershopId },
@@ -64,7 +65,9 @@ export async function assignAppointmentBarber(
       });
 
       return { ok: true as const };
-    });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
 
     if (result.ok) {
       revalidatePath("/admin/agenda");
@@ -74,9 +77,12 @@ export async function assignAppointmentBarber(
 
     return result;
   } catch (e) {
-    // P2002 = unique constraint violation — concurrent assignment for same barber+startAt
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return { ok: false, error: "Horário não disponível para este barbeiro." };
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      // P2002 = unique constraint violation
+      // P2034 = serialization failure (PostgreSQL SERIALIZABLE — retry-safe)
+      if (e.code === "P2002" || e.code === "P2034") {
+        return { ok: false, error: "Horário não disponível para este barbeiro." };
+      }
     }
     console.error("[assignAppointmentBarber]", e);
     return { ok: false, error: "Erro ao atribuir barbeiro. Tente novamente." };
